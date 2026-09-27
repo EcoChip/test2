@@ -130,7 +130,7 @@ export function DentalArchModel({
   const masterGroupRef = useRef<THREE.Group>(null);
   const upperArchRef = useRef<THREE.Group>(null);
   const lowerArchRef = useRef<THREE.Group>(null);
-  const { camera } = useThree();
+  const { camera, viewport } = useThree();
 
   // Load upper and lower dental arches with useGLTF
   const superiorGLTF = useGLTF("/models/arcada_superior.glb");
@@ -138,28 +138,34 @@ export function DentalArchModel({
 
   // Apply optical SmartTrack® high-clarity translucent material
   useEffect(() => {
+    const isMobile =
+      typeof window !== "undefined" &&
+      (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent) ||
+        window.innerWidth < 768);
+
     const applySmartTrackMaterial = (scene: THREE.Group) => {
       scene.traverse((node) => {
         if ((node as THREE.Mesh).isMesh) {
           const mesh = node as THREE.Mesh;
           // Clean, high-transmission polyurethane optical material
+          // On mobile, transmission: 0 avoids WebKit FBO depth bugs while maintaining high-gloss translucency
           mesh.material = new THREE.MeshPhysicalMaterial({
-            color: new THREE.Color(0xffffff),
-            transmission: 0.90, // Pristine optical transmission
-            opacity: 1,
+            color: new THREE.Color(isMobile ? 0xf2fbf6 : 0xffffff),
+            transmission: isMobile ? 0.0 : 0.82,
+            opacity: isMobile ? 0.85 : 0.95,
             transparent: true,
-            roughness: 0.09,
-            metalness: 0.02,
+            roughness: isMobile ? 0.12 : 0.08,
+            metalness: 0.04,
             ior: 1.52, // Medical polyurethane refractive index
             thickness: 0.85,
-            specularIntensity: 1.8,
+            specularIntensity: 2.0,
             specularColor: new THREE.Color(0xffffff),
             clearcoat: 1.0,
-            clearcoatRoughness: 0.06,
+            clearcoatRoughness: 0.05,
             attenuationColor: new THREE.Color(0xecf8f4),
             attenuationDistance: 1.6,
             side: THREE.DoubleSide,
-            depthWrite: false, // Prevents Z-sorting visual artifacts in transparent meshes
+            depthWrite: isMobile ? true : false,
           });
         }
       });
@@ -179,15 +185,26 @@ export function DentalArchModel({
     const t = state.clock.getElapsedTime();
     const lerpSpeed = 1 - Math.exp(-9 * delta);
 
+    // Responsive scaling based on viewport aspect ratio
+    const isPortrait = viewport.aspect < 1;
+    // In portrait mobile, viewport width in Three.js units is much smaller,
+    // so scale the model to fit comfortably without clipping:
+    const responsiveScaleFactor = isPortrait
+      ? THREE.MathUtils.clamp(viewport.aspect / 0.88, 0.48, 0.85)
+      : 1.0;
+
+    // Mobile vertical offset: slightly lower so it's centered and not occluded by top titles
+    const mobileYOffset = isPortrait ? -0.16 : 0.0;
+
     if (reducedMotion) {
       // Gentle fixed elegant posture in reduced-motion mode
-      masterGroupRef.current.position.set(0, 0, 0);
+      masterGroupRef.current.position.set(0, mobileYOffset, 0);
       masterGroupRef.current.rotation.set(0.08, 0.12, 0);
-      masterGroupRef.current.scale.set(1.1, 1.1, 1.1);
+      masterGroupRef.current.scale.setScalar(1.1 * responsiveScaleFactor);
       upperArchRef.current.position.y = 0.28;
       lowerArchRef.current.position.y = -0.28;
-      camera.position.set(0, 0, 4.0);
-      camera.lookAt(0, 0, 0);
+      camera.position.set(0, mobileYOffset * 0.5, 4.0);
+      camera.lookAt(0, mobileYOffset, 0);
       return;
     }
 
@@ -197,6 +214,13 @@ export function DentalArchModel({
     const idleWeight = Math.max(0, 1 - progress * 25);
     const idleY = Math.sin(t * 1.2) * 0.02 * idleWeight;
     const idleRotY = Math.sin(t * 0.8) * 0.025 * idleWeight;
+
+    // Master group position with mobile Y offset
+    masterGroupRef.current.position.y = THREE.MathUtils.lerp(
+      masterGroupRef.current.position.y,
+      mobileYOffset,
+      lerpSpeed
+    );
 
     // Smoothly lerp master group rotation
     masterGroupRef.current.rotation.x = THREE.MathUtils.lerp(
@@ -215,9 +239,13 @@ export function DentalArchModel({
       lerpSpeed
     );
 
-    // Master scale
+    // Master scale with responsive factor
     masterGroupRef.current.scale.setScalar(
-      THREE.MathUtils.lerp(masterGroupRef.current.scale.x, target.scale, lerpSpeed)
+      THREE.MathUtils.lerp(
+        masterGroupRef.current.scale.x,
+        target.scale * responsiveScaleFactor,
+        lerpSpeed
+      )
     );
 
     // Upper Arch Position (moves upwards +Y)
@@ -243,8 +271,12 @@ export function DentalArchModel({
 
     // Camera Dolly & Position
     camera.position.z = THREE.MathUtils.lerp(camera.position.z, target.camZ, lerpSpeed);
-    camera.position.y = THREE.MathUtils.lerp(camera.position.y, target.camY + idleY, lerpSpeed);
-    camera.lookAt(0, target.camY + idleY, 0);
+    camera.position.y = THREE.MathUtils.lerp(
+      camera.position.y,
+      target.camY + idleY + mobileYOffset * 0.5,
+      lerpSpeed
+    );
+    camera.lookAt(0, target.camY + idleY + mobileYOffset, 0);
   });
 
   return (
