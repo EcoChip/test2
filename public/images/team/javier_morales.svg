@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 750" width="600" height="750">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#24342E"/>
+      <stop offset="100%" stop-color="#141E1A"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="50%" cy="40%" r="50%">
+      <stop offset="0%" stop-color="#2F4C42" stop-opacity="0.2"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="600" height="750" fill="url(#bgGrad)"/>
+  <circle cx="300" cy="320" r="240" fill="url(#halo)"/>
+
+  <!-- Architectural backdrop lines -->
+  <line x1="80" y1="0" x2="80" y2="750" stroke="#FAF7F2" stroke-opacity="0.04" stroke-width="1"/>
+  <line x1="520" y1="0" x2="520" y2="750" stroke="#FAF7F2" stroke-opacity="0.04" stroke-width="1"/>
+  <line x1="0" y1="580" x2="600" y2="580" stroke="#FAF7F2" stroke-opacity="0.04" stroke-width="1"/>
+
+  <!-- Stylized Doctor Silhouette / Monogram -->
+  <g transform="translate(180, 160)">
+    <circle cx="120" cy="120" r="110" fill="#2E443C" stroke="#2F4C42" stroke-opacity="0.4" stroke-width="2"/>
+    <text x="120" y="145" font-family="serif" font-size="72" fill="#FAF7F2" text-anchor="middle" font-weight="bold">JM</text>
+  </g>
+
+  <!-- Doctor Coat / Posture Stylization -->
+  <path d="M 160 480 Q 300 440 440 480 L 490 750 L 110 750 Z" fill="#1C2823" stroke="#FAF7F2" stroke-opacity="0.08"/>
+  <path d="M 270 470 L 300 560 L 330 470 Z" fill="#2F4C42" opacity="0.4"/>
+  <line x1="300" y1="560" x2="300" y2="750" stroke="#FAF7F2" stroke-opacity="0.1" stroke-width="2"/>
+
+  <!-- Stethoscope / Medical subtle line -->
+  <path d="M 240 500 Q 300 600 360 500" fill="none" stroke="#FAF7F2" stroke-opacity="0.25" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- Text Info Overlay -->
+  <rect x="0" y="580" width="600" height="170" fill="#0E1613" fill-opacity="0.85"/>
+  <text x="50" y="625" font-family="serif" font-size="28" fill="#FAF7F2" font-weight="bold">Dr. Javier Morales</text>
+  <text x="50" y="660" font-family="sans-serif" font-size="14" fill="#2F4C42" font-weight="600" letter-spacing="1">Cirugía Oral & Implantología Guiada</text>
+  <text x="50" y="695" font-family="sans-serif" font-size="12" fill="#FAF7F2" opacity="0.6">Máster UCM | Miembro SECIB | Col. 28003820 | 18 años exp.</text>
+</svg>

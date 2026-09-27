@@ -1,0 +1,248 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-porcelain: 250 247 242;
+  --color-porcelain-light: 255 253 249;
+  --color-porcelain-dark: 240 235 225;
+
+  --color-sage: 47 76 66;
+  --color-sage-dark: 30 51 44;
+  --color-sage-deep: 23 38 33;
+  --color-sage-light: 66 103 90;
+
+  --color-coral: 225 120 90;
+  --color-coral-hover: 206 102 73;
+  --color-coral-active: 184 85 57;
+
+  --color-ink: 29 36 32;
+  --color-ink-light: 58 69 63;
+  --color-ink-muted: 91 107 99;
+  --color-ink-subtle: 136 153 144;
+
+  --color-obsidian: 11 15 13;
+  --color-obsidian-surface: 18 24 21;
+
+  --slide-bg: #121A16;
+  --slide-accent: #E1785A;
+}
+
+/* PALETA 1: AZUL PETRÓLEO MUY OSCURO Y DESATURADO (PETROL NOIR) */
+[data-theme="petrol"] {
+  --color-porcelain: 243 246 248;
+  --color-porcelain-light: 250 252 253;
+  --color-porcelain-dark: 229 236 240;
+
+  --color-sage: 33 57 71;
+  --color-sage-dark: 21 38 48;
+  --color-sage-deep: 15 27 34;
+  --color-sage-light: 58 92 112;
+
+  --color-coral: 78 164 182;
+  --color-coral-hover: 66 140 159;
+  --color-coral-active: 54 117 133;
+
+  --color-ink: 18 27 34;
+  --color-ink-light: 50 70 83;
+  --color-ink-muted: 85 110 126;
+  --color-ink-subtle: 133 155 170;
+
+  --color-obsidian: 8 16 22;
+  --color-obsidian-surface: 15 28 37;
+
+  --slide-bg: #0F1C25;
+  --slide-accent: #4EA4B6;
+}
+
+/* PALETA 2: MÁRMOL, GRAFITO & ORO CHAMPAGNE (ALTA COSMÉTICA) */
+[data-theme="champagne"] {
+  --color-porcelain: 250 248 245;
+  --color-porcelain-light: 255 253 251;
+  --color-porcelain-dark: 240 236 228;
+
+  --color-sage: 61 53 43;
+  --color-sage-dark: 42 36 28;
+  --color-sage-deep: 30 25 19;
+  --color-sage-light: 94 82 68;
+
+  --color-coral: 197 162 101;
+  --color-coral-hover: 179 142 80;
+  --color-coral-active: 156 122 64;
+
+  --color-ink: 30 29 26;
+  --color-ink-light: 67 64 59;
+  --color-ink-muted: 110 105 97;
+  --color-ink-subtle: 158 152 143;
+
+  --color-obsidian: 14 14 18;
+  --color-obsidian-surface: 24 24 32;
+
+  --slide-bg: #181820;
+  --slide-accent: #C5A265;
+}
+
+/* PALETA 3: TITANIO QUIRÚRGICO & MONOCROMO NÓRDICO */
+[data-theme="titanium"] {
+  --color-porcelain: 248 250 252;
+  --color-porcelain-light: 255 255 255;
+  --color-porcelain-dark: 235 240 245;
+
+  --color-sage: 50 56 62;
+  --color-sage-dark: 34 39 43;
+  --color-sage-deep: 24 27 30;
+  --color-sage-light: 77 87 96;
+
+  --color-coral: 158 172 184;
+  --color-coral-hover: 137 151 164;
+  --color-coral-active: 115 129 142;
+
+  --color-ink: 20 23 26;
+  --color-ink-light: 53 61 69;
+  --color-ink-muted: 94 106 119;
+  --color-ink-subtle: 142 157 174;
+
+  --color-obsidian: 15 17 19;
+  --color-obsidian-surface: 26 29 32;
+
+  --slide-bg: #1A1D20;
+  --slide-accent: #9EACB8;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    background-color: rgb(var(--color-porcelain));
+    color: rgb(var(--color-ink));
+    transition: background-color 0.4s ease, color 0.4s ease;
+  }
+
+  body {
+    overflow-x: hidden;
+    min-height: 100vh;
+    font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: transparent;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-fraunces), Georgia, serif;
+    font-feature-settings: "liga" 1, "dlig" 1;
+    letter-spacing: -0.02em;
+  }
+
+  ::selection {
+    background-color: rgba(47, 76, 66, 0.2);
+    color: #1D2420;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Custom editorial utility classes */
+.font-editorial {
+  font-family: var(--font-fraunces), Georgia, serif;
+}
+
+.text-balance {
+  text-wrap: balance;
+}
+
+.text-pretty {
+  text-wrap: pretty;
+}
+
+/* Luxury Custom Scrollbars across entire application */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: rgb(var(--color-obsidian));
+}
+::-webkit-scrollbar-thumb {
+  background: rgb(var(--color-sage));
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgb(var(--color-coral));
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--color-sage)) rgb(var(--color-obsidian));
+}
+
+/* Hide scrollbar for clean horizontal tabs/scrollers */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Fluid Button Slide-Left Hover Animation */
+.btn-slide-left {
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+  transition: color 0.35s ease, transform 0.25s ease, box-shadow 0.35s ease;
+}
+
+.btn-slide-left::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: var(--slide-bg, #121A16);
+  z-index: -1;
+  transform: translateX(100%);
+  transition: transform 0.45s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.btn-slide-left:hover::before {
+  transform: translateX(0);
+}
+
+.btn-slide-coral::before {
+  background-color: var(--slide-accent, rgb(var(--color-coral))) !important;
+}
+
+.btn-slide-dark::before {
+  background-color: var(--slide-bg, rgb(var(--color-obsidian-surface))) !important;
+}
+
+.btn-slide-sage::before {
+  background-color: rgb(var(--color-sage)) !important;
+}
+
+/* Fluid Micro-Lift for Text, Links & Cards */
+.hover-lift-sm {
+  transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1), color 0.3s ease;
+}
+
+.hover-lift-sm:hover {
+  transform: translateY(-2.5px);
+}
+
+.hover-lift-md {
+  transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.35s ease;
+}
+
+.hover-lift-md:hover {
+  transform: translateY(-5px);
+}

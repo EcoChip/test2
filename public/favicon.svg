@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Obsidian luxury background with rounded corner squircle -->
+  <rect width="64" height="64" rx="16" fill="#0B0F0D"/>
+  <rect x="1.5" y="1.5" width="61" height="61" rx="14.5" stroke="#E06D53" stroke-opacity="0.3" stroke-width="1.5"/>
+  <!-- Architectural letter A in porcelain white -->
+  <path d="M19 47L32 17L45 47" stroke="#F5F5F0" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Translucent biometric dental arch curve linking the crossbar in coral -->
+  <path d="M22.5 35.5C26.5 31.5 37.5 31.5 41.5 35.5" stroke="#E06D53" stroke-width="3" stroke-linecap="round"/>
+  <!-- Diamond Apex pinnacle point -->
+  <circle cx="32" cy="16" r="2" fill="#E06D53"/>
+</svg>
