@@ -100,6 +100,23 @@ export function DentalIntroScroller() {
     return () => clearTimeout(timer);
   }, []);
 
+  // Handle orientation change and screen resize with ScrollTrigger refresh
+  useEffect(() => {
+    const handleOrientationOrResize = () => {
+      const timer = setTimeout(() => {
+        ScrollTrigger.refresh();
+      }, 150);
+      return () => clearTimeout(timer);
+    };
+
+    window.addEventListener("resize", handleOrientationOrResize);
+    window.addEventListener("orientationchange", handleOrientationOrResize);
+    return () => {
+      window.removeEventListener("resize", handleOrientationOrResize);
+      window.removeEventListener("orientationchange", handleOrientationOrResize);
+    };
+  }, []);
+
   // Set up ScrollTrigger scrubbed animation over responsive dvh travel (550dvh mobile, 1000dvh desktop)
   useEffect(() => {
     if (reducedMotion || !containerRef.current) return;
@@ -110,20 +127,31 @@ export function DentalIntroScroller() {
         start: "top top",
         end: "bottom bottom",
         scrub: 0.5,
+        onToggle: (self) => {
+          // Lock iOS Safari overscroll bounce while pinned to avoid desynchronization
+          if (typeof document !== "undefined") {
+            document.body.style.overscrollBehaviorY = self.isActive ? "none" : "";
+          }
+        },
         onUpdate: (self) => {
           const p = self.progress;
           setProgress(p);
 
-          // Find current active beat
+          // Find current active beat (only triggers state update on actual transition)
           const current = BEATS.find((b) => p >= b.start && p <= b.end);
           if (current) {
-            setActiveBeatId(current.id);
+            setActiveBeatId((prev) => (prev !== current.id ? current.id : prev));
           }
         },
       });
     }, containerRef);
 
-    return () => ctx.revert();
+    return () => {
+      ctx.revert();
+      if (typeof document !== "undefined") {
+        document.body.style.overscrollBehaviorY = "";
+      }
+    };
   }, [reducedMotion]);
 
   // Dynamic Aligner count for Beat 5 (range 0.62 to 0.75)
@@ -151,11 +179,15 @@ export function DentalIntroScroller() {
       ref={containerRef}
       className={`relative w-full ${
         reducedMotion ? "h-[100dvh]" : "h-[550dvh] md:h-[1000dvh]"
-      } bg-obsidian`}
+      } bg-obsidian overscroll-none`}
+      style={{ overscrollBehavior: "none", overscrollBehaviorY: "none" }}
       aria-label="Introducción cinematográfica AURA 3D"
     >
       {/* Sticky Fullscreen Stage */}
-      <div className="sticky top-0 h-[100dvh] w-full overflow-hidden flex items-center justify-center">
+      <div 
+        className="sticky top-0 h-[100dvh] w-full overflow-hidden flex items-center justify-center overscroll-none"
+        style={{ overscrollBehavior: "none", overscrollBehaviorY: "none" }}
+      >
         
         {/* Fallback for devices without WebGL or low-end mobile devices */}
         {hasWebGL === false || isLowEnd ? (
@@ -230,15 +262,15 @@ export function DentalIntroScroller() {
               />
             </div>
 
-            {/* Top Right Quick Skip Button */}
-            <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-40">
+            {/* Top Right Quick Skip Button with Safe Area Inset and 44px Touch Target */}
+            <div className="absolute top-[max(1rem,env(safe-area-inset-top))] right-[max(1rem,env(safe-area-inset-right))] sm:top-6 sm:right-6 z-40">
               <a
                 href="#contenido-home"
-                className="group inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-white/10 bg-black/40 hover:bg-black/60 backdrop-blur-md text-[11px] sm:text-xs font-sans tracking-wider text-porcelain/70 hover:text-white transition-all shadow-subtle pointer-events-auto"
+                className="group inline-flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 min-h-[44px] rounded-full border border-white/15 bg-black/50 hover:bg-black/70 backdrop-blur-md text-xs font-sans tracking-wider text-porcelain/80 hover:text-white transition-all shadow-subtle pointer-events-auto"
                 aria-label="Saltar secuencia 3D e ir directo al contenido de la clínica"
               >
                 <span>Saltar intro</span>
-                <ArrowRightIcon className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                <ArrowRightIcon className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
               </a>
             </div>
 
@@ -276,35 +308,35 @@ export function DentalIntroScroller() {
             </div>
 
             {/* ======================================================== */}
-            {/* 8 BEAT STORYTELLING UI OVERLAYS                          */}
+            {/* 8 BEAT STORYTELLING UI OVERLAYS (PORTRAIT REFLOW & SAFE) */}
             {/* ======================================================== */}
 
             {/* BEAT 1: PRESENTACIÓN (0.00 - 0.08 hold) */}
             <div
-              className="absolute inset-0 z-30 pointer-events-none flex flex-col justify-between p-6 sm:p-12 md:p-16 max-w-7xl mx-auto w-full transition-opacity duration-200"
+              className="absolute inset-0 z-30 pointer-events-none flex flex-col justify-between p-5 sm:p-12 md:p-16 pt-[max(4.5rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))] pl-[max(1.25rem,env(safe-area-inset-left))] pr-[max(1.25rem,env(safe-area-inset-right))] max-w-7xl mx-auto w-full transition-opacity duration-200"
               style={{ opacity: reducedMotion ? 1 : opacities[0] }}
             >
-              <div className="pt-12 sm:pt-20">
+              <div>
                 <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-white/10 bg-white/5 backdrop-blur-md">
                   <span className="w-1.5 h-1.5 rounded-full bg-coral animate-pulse" />
-                  <span className="text-[10px] uppercase tracking-[0.2em] text-porcelain/90 font-sans font-medium">
+                  <span className="text-[11px] sm:text-xs uppercase tracking-[0.2em] text-porcelain/90 font-sans font-medium">
                     Invisalign® Diamond Apex Provider
                   </span>
                 </div>
               </div>
 
-              <div className="max-w-2xl mt-3 sm:my-auto">
-                <h1 className="font-editorial text-3xl sm:text-6xl md:text-7xl font-normal text-porcelain leading-[1.08] tracking-tight text-balance">
+              <div className="max-w-2xl my-auto sm:my-auto">
+                <h1 className="font-editorial text-3xl sm:text-6xl md:text-7xl font-normal text-porcelain leading-[1.1] tracking-tight text-balance">
                   Tu sonrisa, a&nbsp;otro&nbsp;nivel.
                 </h1>
-                <p className="mt-3 sm:mt-5 text-xs sm:text-base text-porcelain/75 font-sans max-w-sm sm:max-w-lg leading-relaxed text-pretty">
+                <p className="mt-3 sm:mt-5 text-sm sm:text-base text-porcelain/80 font-sans max-w-sm sm:max-w-lg leading-relaxed text-pretty">
                   Ortodoncia invisible y arquitectura dental biomimética.
                   Diagnóstico 3D y alineación personalizada en el Barrio de Salamanca, Madrid.
                 </p>
               </div>
 
-              <div className="pb-4">
-                <div className="flex items-center gap-3 text-porcelain/60 text-xs font-sans uppercase tracking-[0.2em]">
+              <div>
+                <div className="flex items-center gap-3 text-porcelain/70 text-xs sm:text-sm font-sans uppercase tracking-[0.2em]">
                   <div className="w-4 h-7 rounded-full border border-porcelain/30 flex items-start justify-center p-1">
                     <div className="w-1 h-1.5 rounded-full bg-coral animate-bounce" />
                   </div>
@@ -314,28 +346,29 @@ export function DentalIntroScroller() {
             </div>
 
             {/* BEAT 2: ROTACIÓN LENTA / ANATOMÍA DUAL (0.14 - 0.22 hold) */}
+            {/* Top reflow in mobile portrait: card in upper area, model in lower-middle */}
             <div
-              className="absolute inset-0 z-30 pointer-events-none flex items-start sm:items-center p-6 sm:p-12 md:p-16 max-w-7xl mx-auto w-full transition-opacity duration-200 pt-20 sm:pt-12"
+              className="absolute inset-0 z-30 pointer-events-none flex items-start sm:items-center p-4 sm:p-12 md:p-16 pt-[max(4.75rem,env(safe-area-inset-top))] sm:pt-12 pl-[max(1.25rem,env(safe-area-inset-left))] pr-[max(1.25rem,env(safe-area-inset-right))] max-w-7xl mx-auto w-full transition-opacity duration-200"
               style={{ opacity: opacities[1] }}
             >
-              <div className="max-w-xl space-y-3 sm:space-y-4 p-4 sm:p-0 rounded-2xl bg-black/50 sm:bg-transparent backdrop-blur-md sm:backdrop-blur-none border border-white/10 sm:border-transparent shadow-lg sm:shadow-none">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-coral/30 bg-coral/10 text-coral text-[10px] font-sans uppercase tracking-[0.2em]">
+              <div className="max-w-xl space-y-3 sm:space-y-4 p-5 sm:p-0 rounded-2xl bg-black/70 sm:bg-transparent backdrop-blur-xl sm:backdrop-blur-none border border-white/15 sm:border-transparent shadow-2xl sm:shadow-none w-full sm:w-auto">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-coral/30 bg-coral/10 text-coral text-[11px] sm:text-xs font-sans uppercase tracking-[0.2em]">
                   02 / Escaneo Digital 3D
                 </div>
                 <h2 className="font-editorial text-2xl sm:text-5xl font-normal text-porcelain leading-tight">
                   Anatomía y Oclusión Dual
                 </h2>
-                <p className="text-xs sm:text-base text-porcelain/75 font-sans leading-relaxed">
+                <p className="text-sm sm:text-base text-porcelain/85 font-sans leading-relaxed">
                   Ambas arcadas funcionan como un engranaje biomecánico continuo. Mediante escaneo intraoral digital analizamos la relación interoclusal y la alineación dental en tiempo real, sin recurrir a pastas molestas.
                 </p>
-                <div className="flex flex-wrap gap-2 pt-1 sm:pt-2">
-                  <span className="px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full bg-white/5 border border-white/10 text-[10px] sm:text-[11px] font-sans text-porcelain/80">
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <span className="px-3 py-1 rounded-full bg-white/10 border border-white/15 text-xs font-sans text-porcelain">
                     Escáner intraoral 3D
                   </span>
-                  <span className="px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full bg-white/5 border border-white/10 text-[10px] sm:text-[11px] font-sans text-porcelain/80">
+                  <span className="px-3 py-1 rounded-full bg-white/10 border border-white/15 text-xs font-sans text-porcelain">
                     Alta definición digital
                   </span>
-                  <span className="px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full bg-white/5 border border-white/10 text-[10px] sm:text-[11px] font-sans text-porcelain/80">
+                  <span className="px-3 py-1 rounded-full bg-white/10 border border-white/15 text-xs font-sans text-porcelain">
                     Sin pastas molestas
                   </span>
                 </div>
@@ -343,98 +376,101 @@ export function DentalIntroScroller() {
             </div>
 
             {/* BEAT 3: APERTURA DE LA MORDIDA (0.30 - 0.40 hold) */}
+            {/* Top reflow in mobile portrait: jaw opens downwards in lower area */}
             <div
-              className="absolute inset-0 z-30 pointer-events-none flex items-start sm:items-center justify-end p-6 sm:p-12 md:p-16 max-w-7xl mx-auto w-full transition-opacity duration-200 pt-20 sm:pt-12"
+              className="absolute inset-0 z-30 pointer-events-none flex items-start sm:items-center justify-start sm:justify-end p-4 sm:p-12 md:p-16 pt-[max(4.75rem,env(safe-area-inset-top))] sm:pt-12 pl-[max(1.25rem,env(safe-area-inset-left))] pr-[max(1.25rem,env(safe-area-inset-right))] max-w-7xl mx-auto w-full transition-opacity duration-200"
               style={{ opacity: opacities[2] }}
             >
-              <div className="max-w-xl space-y-3 sm:space-y-4 text-left sm:text-right p-4 sm:p-0 rounded-2xl bg-black/50 sm:bg-transparent backdrop-blur-md sm:backdrop-blur-none border border-white/10 sm:border-transparent shadow-lg sm:shadow-none">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-amber-400/30 bg-amber-400/10 text-amber-300 text-[10px] font-sans uppercase tracking-[0.2em]">
+              <div className="max-w-xl space-y-3 sm:space-y-4 text-left sm:text-right p-5 sm:p-0 rounded-2xl bg-black/70 sm:bg-transparent backdrop-blur-xl sm:backdrop-blur-none border border-white/15 sm:border-transparent shadow-2xl sm:shadow-none w-full sm:w-auto">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-amber-400/30 bg-amber-400/10 text-amber-300 text-[11px] sm:text-xs font-sans uppercase tracking-[0.2em]">
                   03 / Dinámica Mandibular
                 </div>
                 <h2 className="font-editorial text-2xl sm:text-5xl font-normal text-porcelain leading-tight">
                   Apertura y Desoclusión Guiada
                 </h2>
-                <p className="text-xs sm:text-base text-porcelain/75 font-sans leading-relaxed">
+                <p className="text-sm sm:text-base text-porcelain/85 font-sans leading-relaxed">
                   Desacople vertical milimétrico. Cada movimiento respeta la articulación temporomandibular (ATM) y la guía canina, corrigiendo sobremordida o apiñamiento severo con vectores axiales.
                 </p>
-                <div className="p-3 sm:p-4 rounded-lg bg-black/40 border border-white/10 backdrop-blur-md inline-block text-left max-w-md">
-                  <div className="text-[11px] sm:text-xs uppercase tracking-wider text-coral font-medium mb-1">
+                <div className="p-3.5 sm:p-4 rounded-xl bg-black/60 border border-white/15 backdrop-blur-md inline-block text-left max-w-md">
+                  <div className="text-xs uppercase tracking-wider text-coral font-medium mb-1">
                     ATM Free-Stress Protocol
                   </div>
-                  <div className="text-[11px] sm:text-xs text-porcelain/70">
+                  <div className="text-xs sm:text-sm text-porcelain/75 leading-relaxed">
                     Planificación digital de la dimensión vertical para relajar la musculatura maseterina y prevenir el bruxismo.
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* BEAT 4: ZOOM AL MATERIAL SMARTTRACK (0.45 - 0.58 hold - Momento de Detalle) */}
+            {/* BEAT 4: ZOOM AL MATERIAL SMARTTRACK (0.45 - 0.58 hold) */}
+            {/* Bottom reflow in mobile portrait: card in bottom safe area, macro zoom in upper 60% */}
             <div
-              className="absolute inset-0 z-30 pointer-events-none flex items-start sm:items-center p-6 sm:p-12 md:p-16 max-w-7xl mx-auto w-full transition-opacity duration-200 pt-20 sm:pt-12"
+              className="absolute inset-0 z-30 pointer-events-none flex flex-col justify-end sm:justify-center items-center sm:items-start p-4 sm:p-12 md:p-16 pb-[max(5.5rem,env(safe-area-inset-bottom))] sm:pb-12 pl-[max(1.25rem,env(safe-area-inset-left))] pr-[max(1.25rem,env(safe-area-inset-right))] max-w-7xl mx-auto w-full transition-opacity duration-200"
               style={{ opacity: opacities[3] }}
             >
-              <div className="max-w-xl space-y-3 sm:space-y-5 p-4 sm:p-0 rounded-2xl bg-black/50 sm:bg-transparent backdrop-blur-md sm:backdrop-blur-none border border-white/10 sm:border-transparent shadow-lg sm:shadow-none">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-emerald-400/30 bg-emerald-400/10 text-emerald-300 text-[10px] font-sans uppercase tracking-[0.2em]">
+              <div className="max-w-xl space-y-3 sm:space-y-4 p-5 sm:p-0 rounded-2xl bg-black/80 sm:bg-transparent backdrop-blur-xl sm:backdrop-blur-none border border-white/15 sm:border-transparent shadow-2xl sm:shadow-none w-full sm:w-auto">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-emerald-400/30 bg-emerald-400/10 text-emerald-300 text-[11px] sm:text-xs font-sans uppercase tracking-[0.2em]">
                   04 / Material Patentado SmartTrack®
                 </div>
                 <h2 className="font-editorial text-2xl sm:text-5xl font-normal text-porcelain leading-tight">
                   Polímero Elastomérico Multicapa
                 </h2>
-                <p className="text-xs sm:text-base text-porcelain/75 font-sans leading-relaxed">
+                <p className="text-sm sm:text-base text-porcelain/85 font-sans leading-relaxed">
                   Desarrollado exclusivamente para ortodoncia transparente. Ejerce una fuerza constante y suave sobre el diente para un movimiento más predecible. Su transparencia óptica se adapta a la luz natural del esmalte.
                 </p>
 
-                {/* Technical Specs Grid */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 pt-1 sm:pt-2">
-                  <div className="p-2 sm:p-3 rounded-lg bg-black/40 border border-white/10 backdrop-blur-md">
-                    <div className="font-editorial text-lg sm:text-2xl text-coral">Constante</div>
-                    <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-porcelain/60 mt-0.5">Fuerza suave</div>
+                {/* Technical Specs Grid (2x2 on mobile, 4 columns on desktop) */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 pt-1">
+                  <div className="p-3 rounded-xl bg-black/60 border border-white/15 backdrop-blur-md">
+                    <div className="font-editorial text-xl sm:text-2xl text-coral">Constante</div>
+                    <div className="text-xs uppercase tracking-wider text-porcelain/70 mt-0.5">Fuerza suave</div>
                   </div>
-                  <div className="p-2 sm:p-3 rounded-lg bg-black/40 border border-white/10 backdrop-blur-md">
-                    <div className="font-editorial text-lg sm:text-2xl text-porcelain">Translúcido</div>
-                    <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-porcelain/60 mt-0.5">Estética discreta</div>
+                  <div className="p-3 rounded-xl bg-black/60 border border-white/15 backdrop-blur-md">
+                    <div className="font-editorial text-xl sm:text-2xl text-porcelain">Translúcido</div>
+                    <div className="text-xs uppercase tracking-wider text-porcelain/70 mt-0.5">Estética discreta</div>
                   </div>
-                  <div className="p-2 sm:p-3 rounded-lg bg-black/40 border border-white/10 backdrop-blur-md">
-                    <div className="font-editorial text-lg sm:text-2xl text-porcelain">Adaptable</div>
-                    <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-porcelain/60 mt-0.5">Ajuste anatómico</div>
+                  <div className="p-3 rounded-xl bg-black/60 border border-white/15 backdrop-blur-md">
+                    <div className="font-editorial text-xl sm:text-2xl text-porcelain">Adaptable</div>
+                    <div className="text-xs uppercase tracking-wider text-porcelain/70 mt-0.5">Ajuste anatómico</div>
                   </div>
-                  <div className="p-2 sm:p-3 rounded-lg bg-black/40 border border-white/10 backdrop-blur-md">
-                    <div className="font-editorial text-lg sm:text-2xl text-emerald-300">Biomédico</div>
-                    <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-porcelain/60 mt-0.5">Confort y seguridad</div>
+                  <div className="p-3 rounded-xl bg-black/60 border border-white/15 backdrop-blur-md">
+                    <div className="font-editorial text-xl sm:text-2xl text-emerald-300">Biomédico</div>
+                    <div className="text-xs uppercase tracking-wider text-porcelain/70 mt-0.5">Confort y seguridad</div>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* BEAT 5: PROGRESIÓN DEL TRATAMIENTO CON CONTADOR DINÁMICO (0.62 - 0.75 hold) */}
+            {/* Bottom reflow in mobile portrait: progress card at bottom, arches move in upper half */}
             <div
-              className="absolute inset-0 z-30 pointer-events-none flex items-start sm:items-center justify-end p-6 sm:p-12 md:p-16 max-w-7xl mx-auto w-full transition-opacity duration-200 pt-16 sm:pt-12"
+              className="absolute inset-0 z-30 pointer-events-none flex flex-col justify-end sm:justify-center items-center sm:items-end p-4 sm:p-12 md:p-16 pb-[max(5.5rem,env(safe-area-inset-bottom))] sm:pb-12 pl-[max(1.25rem,env(safe-area-inset-left))] pr-[max(1.25rem,env(safe-area-inset-right))] max-w-7xl mx-auto w-full transition-opacity duration-200"
               style={{ opacity: opacities[4] }}
             >
-              <div className="max-w-xl space-y-3 sm:space-y-5 text-left sm:text-right p-4 sm:p-0 rounded-2xl bg-black/50 sm:bg-transparent backdrop-blur-md sm:backdrop-blur-none border border-white/10 sm:border-transparent shadow-lg sm:shadow-none">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-sky-400/30 bg-sky-400/10 text-sky-300 text-[10px] font-sans uppercase tracking-[0.2em]">
+              <div className="max-w-xl space-y-3 sm:space-y-4 text-left sm:text-right p-5 sm:p-0 rounded-2xl bg-black/80 sm:bg-transparent backdrop-blur-xl sm:backdrop-blur-none border border-white/15 sm:border-transparent shadow-2xl sm:shadow-none w-full sm:w-auto">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-sky-400/30 bg-sky-400/10 text-sky-300 text-[11px] sm:text-xs font-sans uppercase tracking-[0.2em]">
                   05 / Simulación ClinCheck® Pro
                 </div>
                 <h2 className="font-editorial text-2xl sm:text-5xl font-normal text-porcelain leading-tight">
                   Progresión del Tratamiento
                 </h2>
-                <p className="text-xs sm:text-base text-porcelain/75 font-sans leading-relaxed">
+                <p className="text-sm sm:text-base text-porcelain/85 font-sans leading-relaxed">
                   Cada alineador guía el micromovimiento gradual de tus piezas dentales según la planificación previa realizada por el especialista.
                 </p>
 
                 {/* Animated Interactive Aligner Counter & Progress Bar */}
-                <div className="p-4 sm:p-5 rounded-xl bg-black/70 sm:bg-black/60 border border-white/15 backdrop-blur-lg text-left shadow-2xl space-y-2.5 sm:space-y-3">
+                <div className="p-4 sm:p-5 rounded-2xl bg-black/80 sm:bg-black/60 border border-white/15 backdrop-blur-xl text-left shadow-2xl space-y-3">
                   <div className="flex items-baseline justify-between">
-                    <span className="text-[11px] sm:text-xs uppercase tracking-wider text-porcelain/60 font-sans">
+                    <span className="text-xs uppercase tracking-wider text-porcelain/70 font-sans">
                       Alineador Activo
                     </span>
                     <span className="font-editorial text-2xl sm:text-4xl text-coral font-medium tracking-tight">
-                      Alineador {currentAligner} <span className="text-xs sm:text-sm font-sans text-porcelain/50">de 22</span>
+                      Alineador {currentAligner} <span className="text-xs sm:text-sm font-sans text-porcelain/60">de 22</span>
                     </span>
                   </div>
 
                   {/* Progress Bar with ticks */}
-                  <div className="w-full bg-white/10 h-2 sm:h-2.5 rounded-full overflow-hidden p-0.5 relative">
+                  <div className="w-full bg-white/15 h-2.5 rounded-full overflow-hidden p-0.5 relative">
                     <div
                       className="h-full bg-gradient-to-r from-coral via-amber-400 to-emerald-400 rounded-full transition-all duration-100 ease-out shadow-[0_0_12px_rgba(230,110,80,0.6)]"
                       style={{ width: `${(currentAligner / 22) * 100}%` }}
@@ -443,20 +479,20 @@ export function DentalIntroScroller() {
 
                   <div className="grid grid-cols-3 gap-2 pt-2 border-t border-white/10 text-center">
                     <div>
-                      <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-porcelain/50">Etapa</div>
-                      <div className="text-[11px] sm:text-xs font-semibold text-porcelain mt-0.5">
+                      <div className="text-[10px] sm:text-xs uppercase tracking-wider text-porcelain/60">Etapa</div>
+                      <div className="text-xs sm:text-sm font-semibold text-porcelain mt-0.5">
                         Fase {currentAligner} de 22
                       </div>
                     </div>
                     <div>
-                      <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-porcelain/50">Fuerza</div>
-                      <div className="text-[11px] sm:text-xs font-semibold text-coral mt-0.5">
+                      <div className="text-[10px] sm:text-xs uppercase tracking-wider text-porcelain/60">Fuerza</div>
+                      <div className="text-xs sm:text-sm font-semibold text-coral mt-0.5">
                         Constante y suave
                       </div>
                     </div>
                     <div>
-                      <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-porcelain/50">Planificación</div>
-                      <div className="text-[11px] sm:text-xs font-semibold text-emerald-300 mt-0.5">
+                      <div className="text-[10px] sm:text-xs uppercase tracking-wider text-porcelain/60">Planificación</div>
+                      <div className="text-xs sm:text-sm font-semibold text-emerald-300 mt-0.5">
                         ClinCheck® 3D
                       </div>
                     </div>
@@ -467,12 +503,12 @@ export function DentalIntroScroller() {
 
             {/* BEAT 6: COMPARATIVA BRACKETS VS INVISALIGN (0.78 - 0.87 hold) */}
             <div
-              className="absolute inset-0 z-30 pointer-events-none flex items-center justify-center p-4 sm:p-12 max-w-5xl mx-auto w-full transition-opacity duration-200"
+              className="absolute inset-0 z-30 pointer-events-none flex flex-col justify-center items-center p-4 sm:p-12 pt-[max(4.5rem,env(safe-area-inset-top))] pb-[max(5rem,env(safe-area-inset-bottom))] pl-[max(1.25rem,env(safe-area-inset-left))] pr-[max(1.25rem,env(safe-area-inset-right))] max-w-5xl mx-auto w-full transition-opacity duration-200"
               style={{ opacity: opacities[5] }}
             >
-              <div className="w-full space-y-4 sm:space-y-6 max-h-[82dvh] overflow-y-auto sm:overflow-visible pr-1 sm:pr-0">
+              <div className="w-full space-y-3 sm:space-y-6 max-h-[75dvh] overflow-y-auto sm:overflow-visible pr-1 sm:pr-0">
                 <div className="text-center space-y-1 sm:space-y-2">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-purple-400/30 bg-purple-400/10 text-purple-300 text-[10px] font-sans uppercase tracking-[0.2em]">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-purple-400/30 bg-purple-400/10 text-purple-300 text-[11px] sm:text-xs font-sans uppercase tracking-[0.2em]">
                     06 / Análisis Comparativo
                   </div>
                   <h2 className="font-editorial text-2xl sm:text-5xl font-normal text-porcelain">
@@ -483,17 +519,17 @@ export function DentalIntroScroller() {
                 {/* Two Column Comparative Matrix */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                   {/* Invisalign AURA */}
-                  <div className="p-4 sm:p-6 rounded-xl bg-black/70 sm:bg-black/60 border border-coral/40 backdrop-blur-md shadow-xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 px-2.5 sm:px-3 py-0.5 sm:py-1 bg-coral text-white text-[8px] sm:text-[9px] uppercase font-bold tracking-widest rounded-bl-lg">
+                  <div className="p-4 sm:p-6 rounded-2xl bg-black/80 sm:bg-black/60 border border-coral/40 backdrop-blur-xl shadow-xl relative overflow-hidden">
+                    <div className="absolute top-0 right-0 px-2.5 sm:px-3 py-0.5 sm:py-1 bg-coral text-white text-[9px] sm:text-[10px] uppercase font-bold tracking-widest rounded-bl-lg">
                       Recomendado
                     </div>
                     <div className="font-editorial text-lg sm:text-xl text-porcelain mb-2 sm:mb-4">
                       AURA Invisible
                     </div>
-                    <ul className="space-y-2 text-[11px] sm:text-xs text-porcelain/90 font-sans">
+                    <ul className="space-y-2 text-xs sm:text-sm text-porcelain/90 font-sans">
                       <li className="flex items-start gap-2">
                         <span className="text-coral font-bold">✓</span>
-                        <span>Fuerza biológica constante sin picos de dolor agudo</span>
+                        <span>Fuerza biológica constante sin dolor agudo</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-coral font-bold">✓</span>
@@ -501,7 +537,7 @@ export function DentalIntroScroller() {
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-coral font-bold">✓</span>
-                        <span>Cero llagas o heridas por arcos ni ligaduras metálicas</span>
+                        <span>Cero llagas ni heridas por arcos o metales</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-coral font-bold">✓</span>
@@ -511,11 +547,11 @@ export function DentalIntroScroller() {
                   </div>
 
                   {/* Brackets Tradicionales */}
-                  <div className="p-4 sm:p-6 rounded-xl bg-black/50 sm:bg-black/40 border border-white/10 backdrop-blur-md opacity-80">
+                  <div className="p-4 sm:p-6 rounded-2xl bg-black/60 sm:bg-black/40 border border-white/10 backdrop-blur-xl opacity-80">
                     <div className="font-editorial text-lg sm:text-xl text-porcelain/60 mb-2 sm:mb-4">
                       Brackets Metálicos
                     </div>
-                    <ul className="space-y-2 text-[11px] sm:text-xs text-porcelain/60 font-sans">
+                    <ul className="space-y-2 text-xs sm:text-sm text-porcelain/60 font-sans">
                       <li className="flex items-start gap-2">
                         <span className="text-porcelain/40 font-bold">✗</span>
                         <span>Fricción brusca y dolor tras cada ajuste</span>
@@ -526,7 +562,7 @@ export function DentalIntroScroller() {
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-porcelain/40 font-bold">✗</span>
-                        <span>Urgencias frecuentes por brackets despegados</span>
+                        <span>Urgencias por brackets o alambres despegados</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <span className="text-porcelain/40 font-bold">✗</span>
@@ -540,28 +576,28 @@ export function DentalIntroScroller() {
 
             {/* BEAT 7: USO DIARIO Y LIBERTAD — MODELO COMPLETAMENTE QUIETO (0.89 - 0.95 hold) */}
             <div
-              className="absolute inset-0 z-30 pointer-events-none flex items-center justify-center p-6 sm:p-12 max-w-5xl mx-auto w-full transition-opacity duration-200"
+              className="absolute inset-0 z-30 pointer-events-none flex items-center justify-center p-4 sm:p-12 pl-[max(1.25rem,env(safe-area-inset-left))] pr-[max(1.25rem,env(safe-area-inset-right))] max-w-5xl mx-auto w-full transition-opacity duration-200"
               style={{ opacity: opacities[6] }}
             >
-              <div className="text-center space-y-4 sm:space-y-6 max-w-3xl p-5 sm:p-0 rounded-2xl bg-black/50 sm:bg-transparent backdrop-blur-md sm:backdrop-blur-none border border-white/10 sm:border-transparent">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-coral/30 bg-coral/10 text-coral text-[10px] font-sans uppercase tracking-[0.2em]">
+              <div className="text-center space-y-4 sm:space-y-6 max-w-3xl p-5 sm:p-0 rounded-2xl bg-black/70 sm:bg-transparent backdrop-blur-xl sm:backdrop-blur-none border border-white/15 sm:border-transparent">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-coral/30 bg-coral/10 text-coral text-[11px] sm:text-xs font-sans uppercase tracking-[0.2em]">
                   07 / Vida Cotidiana Sin Restricciones
                 </div>
                 <h2 className="font-editorial text-3xl sm:text-6xl md:text-7xl font-normal text-porcelain leading-[1.1] tracking-tight">
                   Cómetelo. Cepíllate.<br />
                   <span className="text-coral italic font-normal">Quítatelo cuando quieras.</span>
                 </h2>
-                <p className="text-xs sm:text-base md:text-lg text-porcelain/80 font-sans leading-relaxed max-w-2xl mx-auto">
-                  La ortodoncia invisible de alta gama que respeta tu ritmo de vida y tus compromisos profesionales. Disfruta de un espresso, vino o una cena formal sin limitaciones: retiras tus alineadores en un segundo y sonríes sin complejos.
+                <p className="text-sm sm:text-base md:text-lg text-porcelain/85 font-sans leading-relaxed max-w-2xl mx-auto">
+                  La ortodoncia invisible de alta gama que respeta tu ritmo de vida y tus compromisos profesionales. Disfruta de un café, vino o una cena formal sin limitaciones: retiras tus alineadores en un segundo y sonríes sin complejos.
                 </p>
-                <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 pt-1 sm:pt-2">
-                  <div className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-white/5 border border-white/10 text-[11px] sm:text-xs font-sans text-porcelain/90">
+                <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3 pt-1 sm:pt-2">
+                  <div className="px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full bg-white/10 border border-white/15 text-xs sm:text-sm font-sans text-porcelain">
                     ☕ Sin manchas ni tinciones
                   </div>
-                  <div className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-white/5 border border-white/10 text-[11px] sm:text-xs font-sans text-porcelain/90">
+                  <div className="px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full bg-white/10 border border-white/15 text-xs sm:text-sm font-sans text-porcelain">
                     ✨ Higiene oral sin obstáculos
                   </div>
-                  <div className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-white/5 border border-white/10 text-[11px] sm:text-xs font-sans text-porcelain/90">
+                  <div className="px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full bg-white/10 border border-white/15 text-xs sm:text-sm font-sans text-porcelain">
                     📸 Prácticamente imperceptible
                   </div>
                 </div>
@@ -570,17 +606,17 @@ export function DentalIntroScroller() {
 
             {/* BEAT 8: ENTRADA FINAL & CROSS-FADE (0.95 - 1.00) */}
             <div
-              className="absolute inset-0 z-30 pointer-events-none flex items-center justify-center p-6 sm:p-8 text-center transition-opacity duration-150"
+              className="absolute inset-0 z-30 pointer-events-none flex items-center justify-center p-6 sm:p-8 text-center transition-opacity duration-150 pt-[max(4.5rem,env(safe-area-inset-top))] pb-[max(4.5rem,env(safe-area-inset-bottom))]"
               style={{ opacity: opacities[7] }}
             >
               <div className="space-y-3 sm:space-y-4 max-w-lg">
-                <div className="text-[10px] uppercase tracking-[0.3em] font-sans text-coral font-medium">
+                <div className="text-xs uppercase tracking-[0.3em] font-sans text-coral font-medium">
                   AURA Dental Architecture
                 </div>
-                <h2 className="font-editorial text-3xl sm:text-6xl text-porcelain font-normal">
+                <h2 className="font-editorial text-4xl sm:text-6xl text-porcelain font-normal">
                   Bienvenido a AURA
                 </h2>
-                <p className="text-xs sm:text-sm text-porcelain/80 font-sans">
+                <p className="text-sm text-porcelain/80 font-sans">
                   Descubre la excelencia en estética dental y salud bucodental de vanguardia en Madrid.
                 </p>
               </div>

@@ -31,7 +31,8 @@ interface TransformKeyframe {
 // Beat 6: Comparación contra brackets
 // Beat 7: Uso diario & libertad (modelo completamente quieto)
 // Beat 8: Zoom final al hueco entre arcadas & plunge
-const STATES: Record<string, TransformKeyframe> = {
+// Landscape Desktop/Tablet Keyframes (composed for wide 16:9 / horizontal framing)
+export const STATES_LANDSCAPE: Record<string, TransformKeyframe> = {
   beat1: { rotX: 0.03, rotY: 0.00, rotZ: 0.00, separation: 0.00, lowerRotX: 0.00, camZ: 4.20, camY: 0.00, scale: 1.00 },
   beat2: { rotX: 0.06, rotY: -0.32, rotZ: -0.01, separation: 0.00, lowerRotX: 0.00, camZ: 3.95, camY: 0.00, scale: 1.00 },
   beat3: { rotX: 0.04, rotY: -0.05, rotZ: 0.00, separation: 1.00, lowerRotX: -0.15, camZ: 3.70, camY: 0.00, scale: 1.00 },
@@ -40,6 +41,28 @@ const STATES: Record<string, TransformKeyframe> = {
   beat6: { rotX: 0.05, rotY: -0.16, rotZ: -0.01, separation: 0.60, lowerRotX: -0.10, camZ: 2.75, camY: 0.02, scale: 1.10 },
   beat7: { rotX: 0.02, rotY: 0.00, rotZ: 0.00, separation: 0.50, lowerRotX: -0.08, camZ: 2.65, camY: 0.00, scale: 1.05 },
   beat8: { rotX: 0.00, rotY: 0.00, rotZ: 0.00, separation: 1.35, lowerRotX: -0.22, camZ: 0.28, camY: 0.00, scale: 3.20 },
+};
+
+// Dedicated Portrait Mobile Camera Rig
+// Composed explicitly for vertical aspect ratios (~9:19.5):
+// Closer camera distance (camZ ~1.8 - 3.1), vertical Y framing, teeth fill major vertical screen area
+export const STATES_PORTRAIT: Record<string, TransformKeyframe> = {
+  // Beat 1: Closed occlusion placed in lower-center below hero title, camera closer so teeth are prominent
+  beat1: { rotX: 0.05, rotY: 0.00, rotZ: 0.00, separation: 0.00, lowerRotX: 0.00, camZ: 3.10, camY: -0.18, scale: 1.08 },
+  // Beat 2: Angled view in lower half; top area reserved for 3D scan caption card
+  beat2: { rotX: 0.12, rotY: -0.34, rotZ: -0.01, separation: 0.00, lowerRotX: 0.00, camZ: 2.90, camY: -0.22, scale: 1.12 },
+  // Beat 3: Mandibular vertical opening utilizes full vertical screen height!
+  beat3: { rotX: 0.08, rotY: -0.06, rotZ: 0.00, separation: 1.25, lowerRotX: -0.20, camZ: 2.80, camY: -0.10, scale: 1.10 },
+  // Beat 4: Macro zoom into aligner material in upper 60% of screen (specs card at bottom)
+  beat4: { rotX: 0.14, rotY: 0.18, rotZ: 0.01, separation: 0.65, lowerRotX: -0.10, camZ: 1.80, camY: 0.20, scale: 1.45 },
+  // Beat 5: Progressive alignment animation in upper-middle (ClinCheck counter card at bottom)
+  beat5: { rotX: 0.07, rotY: 0.00, rotZ: 0.00, separation: 0.60, lowerRotX: -0.08, camZ: 2.55, camY: 0.18, scale: 1.20 },
+  // Beat 6: Comparative alignment view (comparative matrix at bottom)
+  beat6: { rotX: 0.08, rotY: -0.18, rotZ: -0.01, separation: 0.60, lowerRotX: -0.10, camZ: 2.65, camY: 0.18, scale: 1.20 },
+  // Beat 7: Daily freedom & motionless resting pose in central area
+  beat7: { rotX: 0.03, rotY: 0.00, rotZ: 0.00, separation: 0.50, lowerRotX: -0.08, camZ: 2.65, camY: -0.15, scale: 1.12 },
+  // Beat 8: Plunge through the arch
+  beat8: { rotX: 0.00, rotY: 0.00, rotZ: 0.00, separation: 1.50, lowerRotX: -0.25, camZ: 0.28, camY: 0.00, scale: 3.50 },
 };
 
 function interpolateKeyframes(a: TransformKeyframe, b: TransformKeyframe, t: number): TransformKeyframe {
@@ -56,70 +79,57 @@ function interpolateKeyframes(a: TransformKeyframe, b: TransformKeyframe, t: num
   };
 }
 
-function calculateTargetTransform(p: number): TransformKeyframe {
+function calculateTargetTransform(p: number, isPortrait: boolean): TransformKeyframe {
+  const states = isPortrait ? STATES_PORTRAIT : STATES_LANDSCAPE;
   const progress = Math.min(1, Math.max(0, p));
 
   // Beat 1: Hold (0.00 -> 0.09)
-  if (progress <= 0.09) {
-    return STATES.beat1;
-  }
+  if (progress <= 0.09) return states.beat1;
   // Transition 1 -> 2 (0.09 -> 0.14)
   if (progress < 0.14) {
     const t = (progress - 0.09) / (0.14 - 0.09);
-    return interpolateKeyframes(STATES.beat1, STATES.beat2, t);
+    return interpolateKeyframes(states.beat1, states.beat2, t);
   }
   // Beat 2: Hold (0.14 -> 0.22)
-  if (progress <= 0.22) {
-    return STATES.beat2;
-  }
+  if (progress <= 0.22) return states.beat2;
   // Transition 2 -> 3 (0.22 -> 0.30)
   if (progress < 0.30) {
     const t = (progress - 0.22) / (0.30 - 0.22);
-    return interpolateKeyframes(STATES.beat2, STATES.beat3, t);
+    return interpolateKeyframes(states.beat2, states.beat3, t);
   }
   // Beat 3: Hold (0.30 -> 0.40)
-  if (progress <= 0.40) {
-    return STATES.beat3;
-  }
+  if (progress <= 0.40) return states.beat3;
   // Transition 3 -> 4 (0.40 -> 0.45)
   if (progress < 0.45) {
     const t = (progress - 0.40) / (0.45 - 0.40);
-    return interpolateKeyframes(STATES.beat3, STATES.beat4, t);
+    return interpolateKeyframes(states.beat3, states.beat4, t);
   }
   // Beat 4: Hold (0.45 -> 0.58)
-  if (progress <= 0.58) {
-    return STATES.beat4;
-  }
+  if (progress <= 0.58) return states.beat4;
   // Transition 4 -> 5 (0.58 -> 0.62)
   if (progress < 0.62) {
     const t = (progress - 0.58) / (0.62 - 0.58);
-    return interpolateKeyframes(STATES.beat4, STATES.beat5, t);
+    return interpolateKeyframes(states.beat4, states.beat5, t);
   }
   // Beat 5: Hold (0.62 -> 0.75)
-  if (progress <= 0.75) {
-    return STATES.beat5;
-  }
+  if (progress <= 0.75) return states.beat5;
   // Transition 5 -> 6 (0.75 -> 0.78)
   if (progress < 0.78) {
     const t = (progress - 0.75) / (0.78 - 0.75);
-    return interpolateKeyframes(STATES.beat5, STATES.beat6, t);
+    return interpolateKeyframes(states.beat5, states.beat6, t);
   }
   // Beat 6: Hold (0.78 -> 0.87)
-  if (progress <= 0.87) {
-    return STATES.beat6;
-  }
+  if (progress <= 0.87) return states.beat6;
   // Transition 6 -> 7 (0.87 -> 0.89)
   if (progress < 0.89) {
     const t = (progress - 0.87) / (0.89 - 0.87);
-    return interpolateKeyframes(STATES.beat6, STATES.beat7, t);
+    return interpolateKeyframes(states.beat6, states.beat7, t);
   }
   // Beat 7: Hold (0.89 -> 0.95) - Completely motionless
-  if (progress <= 0.95) {
-    return STATES.beat7;
-  }
+  if (progress <= 0.95) return states.beat7;
   // Transition 7 -> 8 / Plunge (0.95 -> 1.00)
   const t = (progress - 0.95) / (1.00 - 0.95);
-  return interpolateKeyframes(STATES.beat7, STATES.beat8, t);
+  return interpolateKeyframes(states.beat7, states.beat8, t);
 }
 
 export function DentalArchModel({
@@ -186,39 +196,36 @@ export function DentalArchModel({
     const lerpSpeed = 1 - Math.exp(-9 * delta);
 
     // Responsive scaling based on viewport aspect ratio
-    const isPortrait = viewport.aspect < 1;
-    // In portrait mobile, viewport width in Three.js units is much smaller,
-    // so scale the model to fit comfortably without clipping:
+    const isPortrait = viewport.aspect < 1.0;
+    // In portrait mobile, the dedicated STATES_PORTRAIT camera rig positions the camera close (camZ 2.8 - 3.1)
+    // so the model fills the vertical viewport without shrinking into a tiny dot:
     const responsiveScaleFactor = isPortrait
-      ? THREE.MathUtils.clamp(viewport.aspect / 0.88, 0.48, 0.85)
+      ? THREE.MathUtils.clamp(viewport.aspect / 0.72, 0.78, 1.05)
       : 1.0;
-
-    // Mobile vertical offset: slightly lower so it's centered and not occluded by top titles
-    const mobileYOffset = isPortrait ? -0.16 : 0.0;
 
     if (reducedMotion) {
       // Gentle fixed elegant posture in reduced-motion mode
-      masterGroupRef.current.position.set(0, mobileYOffset, 0);
+      masterGroupRef.current.position.set(0, isPortrait ? -0.15 : 0, 0);
       masterGroupRef.current.rotation.set(0.08, 0.12, 0);
       masterGroupRef.current.scale.setScalar(1.1 * responsiveScaleFactor);
       upperArchRef.current.position.y = 0.28;
       lowerArchRef.current.position.y = -0.28;
-      camera.position.set(0, mobileYOffset * 0.5, 4.0);
-      camera.lookAt(0, mobileYOffset, 0);
+      camera.position.set(0, isPortrait ? -0.08 : 0, isPortrait ? 3.2 : 4.0);
+      camera.lookAt(0, isPortrait ? -0.15 : 0, 0);
       return;
     }
 
-    const target = calculateTargetTransform(progress);
+    const target = calculateTargetTransform(progress, isPortrait);
 
     // Apply idle breathing ONLY at the absolute start (progress < 0.04)
     const idleWeight = Math.max(0, 1 - progress * 25);
     const idleY = Math.sin(t * 1.2) * 0.02 * idleWeight;
     const idleRotY = Math.sin(t * 0.8) * 0.025 * idleWeight;
 
-    // Master group position with mobile Y offset
+    // Smoothly lerp master group position
     masterGroupRef.current.position.y = THREE.MathUtils.lerp(
       masterGroupRef.current.position.y,
-      mobileYOffset,
+      0,
       lerpSpeed
     );
 
@@ -269,14 +276,14 @@ export function DentalArchModel({
       lerpSpeed
     );
 
-    // Camera Dolly & Position
+    // Camera Dolly & Position (target.camY controls vertical framing, lookAt follows elevation)
     camera.position.z = THREE.MathUtils.lerp(camera.position.z, target.camZ, lerpSpeed);
     camera.position.y = THREE.MathUtils.lerp(
       camera.position.y,
-      target.camY + idleY + mobileYOffset * 0.5,
+      target.camY + idleY,
       lerpSpeed
     );
-    camera.lookAt(0, target.camY + idleY + mobileYOffset, 0);
+    camera.lookAt(0, target.camY + idleY, 0);
   });
 
   return (
