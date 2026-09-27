@@ -18,8 +18,10 @@ export function Header() {
     }
 
     const handleScroll = () => {
-      // Intro 3D is pinned for 1000vh (900vh pure scroll); threshold when entering light content
-      const threshold = window.innerHeight * 8.8;
+      // Intro 3D is pinned for 1000dvh on desktop (550dvh on mobile); threshold when entering light content
+      const isMobile = window.innerWidth < 768;
+      const factor = isMobile ? 4.8 : 8.8;
+      const threshold = window.innerHeight * factor;
       setScrolledPastHero(window.scrollY > threshold);
     };
 
@@ -119,22 +121,6 @@ export function Header() {
               Equipo
             </span>
           </Link>
-          <Link
-            href="/blog"
-            className={`group py-2 inline-flex items-center transition-colors hover:text-coral ${
-              pathname.startsWith("/blog")
-                ? isDarkTheme
-                  ? "text-porcelain font-semibold"
-                  : "text-sage font-semibold"
-                : isDarkTheme
-                ? "text-porcelain/80"
-                : "text-ink/80"
-            }`}
-          >
-            <span className="inline-block transition-transform duration-300 ease-out group-hover:-translate-y-1">
-              Blog
-            </span>
-          </Link>
         </nav>
 
         {/* Right CTA Button with Fluid Slide-Left Animation */}
@@ -150,22 +136,22 @@ export function Header() {
           </Link>
         </div>
 
-        {/* Mobile Hamburger Toggle */}
+        {/* Mobile Hamburger Toggle (Minimum 44x44px touch target) */}
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className={`md:hidden p-2 rounded focus:outline-none ${
+          className={`md:hidden min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg transition-colors focus:outline-none ${
             isDarkTheme ? "text-porcelain hover:bg-white/10" : "text-ink hover:bg-ink/5"
           }`}
-          aria-label="Abrir menú"
+          aria-label={mobileMenuOpen ? "Cerrar menú de navegación" : "Abrir menú de navegación"}
         >
           {mobileMenuOpen ? <CloseIcon /> : <MenuIcon />}
         </button>
       </div>
 
-      {/* Mobile Drawer Menu */}
+      {/* Mobile Drawer Menu (Each link satisfies >= 44x44px touch target) */}
       {mobileMenuOpen && (
         <div
-          className={`md:hidden border-b px-6 py-6 flex flex-col gap-4 animate-in slide-in-from-top-2 duration-200 ${
+          className={`md:hidden border-b px-6 py-4 flex flex-col gap-1 animate-in slide-in-from-top-2 duration-200 ${
             isDarkTheme
               ? "bg-obsidian border-white/10 text-porcelain"
               : "bg-porcelain border-ink/10 text-ink shadow-editorial"
@@ -174,43 +160,36 @@ export function Header() {
           <Link
             href="/"
             onClick={() => setMobileMenuOpen(false)}
-            className="text-sm font-medium uppercase tracking-wider py-2 border-b border-ink/5"
+            className="min-h-[48px] flex items-center text-sm font-medium uppercase tracking-wider border-b border-ink/5 px-1 hover:text-coral transition-colors"
           >
             Inicio
           </Link>
           <Link
             href="/invisalign"
             onClick={() => setMobileMenuOpen(false)}
-            className="text-sm font-medium uppercase tracking-wider py-2 border-b border-ink/5"
+            className="min-h-[48px] flex items-center text-sm font-medium uppercase tracking-wider border-b border-ink/5 px-1 hover:text-coral transition-colors"
           >
             Qué es Invisalign
           </Link>
           <Link
             href="/tratamientos"
             onClick={() => setMobileMenuOpen(false)}
-            className="text-sm font-medium uppercase tracking-wider py-2 border-b border-ink/5"
+            className="min-h-[48px] flex items-center text-sm font-medium uppercase tracking-wider border-b border-ink/5 px-1 hover:text-coral transition-colors"
           >
             Tratamientos
           </Link>
           <Link
             href="/equipo"
             onClick={() => setMobileMenuOpen(false)}
-            className="text-sm font-medium uppercase tracking-wider py-2 border-b border-ink/5"
+            className="min-h-[48px] flex items-center text-sm font-medium uppercase tracking-wider border-b border-ink/5 px-1 hover:text-coral transition-colors"
           >
             Equipo
           </Link>
-          <Link
-            href="/blog"
-            onClick={() => setMobileMenuOpen(false)}
-            className="text-sm font-medium uppercase tracking-wider py-2 border-b border-ink/5"
-          >
-            Blog
-          </Link>
-          <div className="pt-2">
+          <div className="pt-3 pb-2">
             <Link
               href="/contacto"
               onClick={() => setMobileMenuOpen(false)}
-              className="w-full flex items-center justify-center gap-2 px-5 py-3 bg-coral text-white text-xs font-semibold uppercase tracking-wider rounded-sm shadow-cta hover:bg-coral-hover"
+              className="w-full min-h-[48px] flex items-center justify-center gap-2 px-5 py-3.5 bg-coral text-white text-xs font-semibold uppercase tracking-wider rounded-sm shadow-cta hover:bg-coral-hover transition-colors"
             >
               <span>Pedir Cita Online</span>
               <ArrowRightIcon className="w-3.5 h-3.5" />

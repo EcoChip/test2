@@ -44,7 +44,7 @@ export const TREATMENTS: TreatmentDetail[] = [
     protocolSteps: [
       {
         title: "Escaneo Óptico iTero Lumina",
-        desc: "Captura de 6.000 imágenes por segundo sin pastas de impresión.",
+        desc: "Digitalización intraoral de alta definición sin pastas de impresión.",
       },
       {
         title: "Estudio Biomecánico ClinCheck®",

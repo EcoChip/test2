@@ -46,8 +46,23 @@ export function AuraChatbot() {
   });
   const [isSubmittingBooking, setIsSubmittingBooking] = useState(false);
 
+  const [menuOpen, setMenuOpen] = useState(false);
+  const fabRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Close speed dial when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (fabRef.current && !fabRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    if (menuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [menuOpen]);
 
   // Initial greeting message
   const [messages, setMessages] = useState<Message[]>([
@@ -194,18 +209,27 @@ export function AuraChatbot() {
 
   return (
     <>
-      {/* Floating Action Triggers */}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
+      {/* Unified Floating Action Button (FAB) & Speed-Dial Menu */}
+      <div ref={fabRef} className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-2.5">
         {/* Soft Notification Cue on Page Load */}
-        {unreadPrompt && !isOpen && (
-          <div className="mb-1 max-w-xs bg-obsidian/95 border border-white/15 text-porcelain p-3.5 rounded-2xl shadow-2xl backdrop-blur-md animate-fade-in flex items-start gap-3">
+        {unreadPrompt && !isOpen && !menuOpen && (
+          <div
+            onClick={() => {
+              setIsOpen(true);
+              setUnreadPrompt(false);
+            }}
+            className="mb-1 max-w-xs bg-obsidian/95 border border-white/15 text-porcelain p-3.5 rounded-2xl shadow-2xl backdrop-blur-md animate-fade-in flex items-start gap-3 cursor-pointer hover:border-coral/50 transition-colors"
+          >
             <div className="w-1.5 h-1.5 rounded-full bg-coral shrink-0 mt-1.5 opacity-90" />
             <div className="text-xs space-y-1">
               <div className="font-semibold text-coral flex items-center justify-between">
                 <span>NOVA · Asistente Virtual</span>
                 <button
-                  onClick={() => setUnreadPrompt(false)}
-                  className="text-porcelain/40 hover:text-porcelain transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setUnreadPrompt(false);
+                  }}
+                  className="text-porcelain/40 hover:text-porcelain transition-colors p-1"
                   aria-label="Cerrar aviso"
                 >
                   ✕
@@ -218,59 +242,85 @@ export function AuraChatbot() {
           </div>
         )}
 
-        {/* WhatsApp Quick Trigger (Symmetric 56px with Chatbot) */}
-        {!isOpen && (
-          <a
-            href="https://wa.me/34600000000?text=Hola%20AURA%2C%20quisiera%20solicitar%20informaci%C3%B3n%20para%20una%20cita%20cl%C3%ADnica."
-            target="_blank"
-            rel="noopener noreferrer"
-            className="group flex items-center h-14 rounded-full bg-[#1EA952] hover:bg-[#189345] text-white shadow-xl transition-all duration-400 ease-out px-4 hover:shadow-2xl"
-            aria-label="Cita vía WhatsApp"
-          >
-            <div className="w-6 h-6 flex items-center justify-center shrink-0">
+        {/* Speed-Dial Expanded Options (WhatsApp & NOVA) */}
+        {menuOpen && !isOpen && (
+          <div className="flex flex-col gap-2.5 items-end mb-1 animate-fade-in">
+            {/* WhatsApp Trigger */}
+            <a
+              href="https://wa.me/34600000000?text=Hola%20AURA%2C%20quisiera%20solicitar%20informaci%C3%B3n%20para%20una%20cita%20cl%C3%ADnica."
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => setMenuOpen(false)}
+              className="flex items-center gap-3 px-4 py-2.5 rounded-full bg-[#1EA952] hover:bg-[#189345] text-white shadow-xl hover:shadow-2xl transition-all duration-300 min-h-[48px] text-xs font-sans font-medium"
+              aria-label="Pedir cita vía WhatsApp"
+            >
               <WhatsAppIcon className="w-5 h-5 shrink-0" />
-            </div>
-            <span className="max-w-0 group-hover:max-w-[160px] opacity-0 group-hover:opacity-100 transition-all duration-400 ease-out overflow-hidden whitespace-nowrap text-xs font-sans font-medium ml-0 group-hover:ml-2.5">
-              Cita vía WhatsApp
-            </span>
-          </a>
+              <span className="whitespace-nowrap">WhatsApp Directo</span>
+            </a>
+
+            {/* Chatbot NOVA Trigger */}
+            <button
+              onClick={() => {
+                setMenuOpen(false);
+                setIsOpen(true);
+                setUnreadPrompt(false);
+              }}
+              className="flex items-center gap-3 px-4 py-2.5 rounded-full bg-obsidian border border-coral/50 text-porcelain hover:bg-black/90 shadow-xl hover:shadow-2xl transition-all duration-300 min-h-[48px] text-xs font-sans font-medium"
+              aria-label="Abrir asistente NOVA"
+            >
+              <NovaChatIcon className="w-5 h-5 text-coral shrink-0" />
+              <span className="whitespace-nowrap">Asistente Virtual NOVA</span>
+            </button>
+          </div>
         )}
 
-        {/* Main NOVA Trigger (Symmetric 56px with WhatsApp) */}
+        {/* Single Unified FAB Main Trigger */}
         <button
           onClick={() => {
-            setIsOpen(!isOpen);
-            setUnreadPrompt(false);
+            if (isOpen) {
+              setIsOpen(false);
+            } else {
+              setMenuOpen(!menuOpen);
+              setUnreadPrompt(false);
+            }
           }}
-          className={`group flex items-center h-14 rounded-full bg-obsidian text-porcelain border border-white/20 shadow-2xl backdrop-blur-md transition-all duration-400 ease-out hover:border-coral/50 px-4 ${
-            isOpen ? "border-coral/50" : ""
+          className={`group flex items-center h-14 rounded-full bg-obsidian text-porcelain border shadow-2xl backdrop-blur-md transition-all duration-300 ease-out px-4 min-h-[48px] ${
+            isOpen || menuOpen
+              ? "border-coral/60 bg-black/90"
+              : "border-white/20 hover:border-coral/50"
           }`}
-          aria-label={isOpen ? "Cerrar asistente" : "Abrir asistente virtual NOVA"}
+          aria-expanded={isOpen || menuOpen}
+          aria-label={
+            isOpen
+              ? "Cerrar asistente"
+              : menuOpen
+              ? "Cerrar menú de contacto"
+              : "Abrir opciones de contacto y asistente NOVA"
+          }
         >
           <div className="w-6 h-6 flex items-center justify-center shrink-0 text-coral group-hover:text-white transition-colors">
-            {isOpen ? (
+            {isOpen || menuOpen ? (
               <CloseIcon className="w-4 h-4 text-porcelain" />
             ) : (
               <NovaChatIcon className="w-5 h-5 text-coral group-hover:text-white transition-colors" />
             )}
           </div>
 
-          {/* Smooth Expanding Label on Hover */}
           <span
             className={`${
-              isOpen
+              isOpen || menuOpen
                 ? "max-w-xs opacity-100 ml-2.5"
-                : "max-w-0 group-hover:max-w-[190px] opacity-0 group-hover:opacity-100 ml-0 group-hover:ml-2.5"
-            } font-sans font-medium text-xs tracking-wider uppercase text-porcelain transition-all duration-400 ease-out overflow-hidden whitespace-nowrap`}
+                : "max-w-0 sm:group-hover:max-w-[190px] opacity-0 sm:group-hover:opacity-100 ml-0 sm:group-hover:ml-2.5"
+            } font-sans font-medium text-xs tracking-wider uppercase text-porcelain transition-all duration-300 ease-out overflow-hidden whitespace-nowrap`}
           >
-            {isOpen ? "Cerrar" : "NOVA · Asistente Virtual"}
+            {isOpen ? "Cerrar" : menuOpen ? "Cerrar" : "Contacto & Citas"}
           </span>
         </button>
       </div>
 
       {/* Main Chatbot Modal / Drawer */}
       {isOpen && (
-        <div className="fixed bottom-24 right-4 sm:right-6 z-50 w-[calc(100vw-2rem)] sm:w-[420px] h-[640px] max-h-[calc(100vh-7rem)] bg-obsidian/95 border border-white/15 rounded-2xl shadow-2xl backdrop-blur-2xl flex flex-col overflow-hidden animate-fade-in text-porcelain">
+        <div className="fixed bottom-24 right-4 sm:right-6 z-50 w-[calc(100vw-2rem)] sm:w-[420px] h-[640px] max-h-[calc(100dvh-7rem)] bg-obsidian/95 border border-white/15 rounded-2xl shadow-2xl backdrop-blur-2xl flex flex-col overflow-hidden animate-fade-in text-porcelain">
           
           {/* Header - Simple & Clean */}
           <div className="p-4 border-b border-white/10 flex items-center justify-between bg-black/40">

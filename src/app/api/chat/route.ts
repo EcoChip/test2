@@ -13,7 +13,7 @@ INFORMACIÓN CLÍNICA Y DE TRATAMIENTOS:
 1. Ortodoncia Invisible (Invisalign® Diamond Apex):
    - Especialista: Dra. Elena Santamaría (Diamond Apex Provider, máxima distinción internacional).
    - Tecnología: Escáner intraoral iTero Element 5D (sin pastas molestas) y simulación ClinCheck Pro.
-   - Material: Férulas SmartTrack® de 0.75 mm de polímero elastomérico invisible.
+   - Material: Férulas transparentes SmartTrack® patentadas, material elastomérico de alta precisión y confort.
    - Duración habitual: 6 a 18 meses. Revisiones cada 6-8 semanas o monitorización digital con Dental Monitoring / Virtual Care.
    - Precio: Desde 2.900 € (incluye estudio 3D completo, todas las férulas y retenedores Vivera al finalizar).
 

@@ -4,8 +4,6 @@ import Image from "next/image";
 import { DentalIntroScroller } from "@/components/3d/DentalIntroScroller";
 import { BeforeAfterSlider } from "@/components/ui/BeforeAfterSlider";
 import { ClinicLocationMap } from "@/components/sections/ClinicLocationMap";
-import { SocialCommunity } from "@/components/sections/SocialCommunity";
-import { BLOG_POSTS } from "@/lib/blogData";
 import {
   ArrowRightIcon,
   ShieldCheckIcon,
@@ -73,8 +71,8 @@ export default function HomePage() {
                 {/* Micro trust indicators */}
                 <div className="pt-6 grid grid-cols-3 gap-4 border-t border-ink/10 text-ink/75">
                   <div className="hover-lift-sm">
-                    <div className="font-editorial text-2xl text-sage font-medium">99.4%</div>
-                    <div className="text-[11px] text-ink-muted uppercase tracking-wider mt-0.5">Previsibilidad 3D</div>
+                    <div className="font-editorial text-2xl text-sage font-medium">3D</div>
+                    <div className="text-[11px] text-ink-muted uppercase tracking-wider mt-0.5">Planificación Digital</div>
                   </div>
                   <div className="hover-lift-sm">
                     <div className="font-editorial text-2xl text-coral font-medium">18+ años</div>
@@ -627,89 +625,6 @@ export default function HomePage() {
 
         {/* SECTION: Google Maps & Ubicación de la Clínica */}
         <ClinicLocationMap />
-
-        {/* SECTION: Teaser del Cuaderno Clínico (Blog) */}
-        <section className="py-24 border-b border-ink/10 bg-porcelain-light">
-          <div className="max-w-7xl mx-auto px-6">
-            <div className="flex flex-col md:flex-row md:items-end justify-between mb-16 gap-6">
-              <div className="max-w-2xl">
-                <span className="text-xs uppercase tracking-[0.2em] text-coral font-semibold">
-                  Divulgación Médica
-                </span>
-                <h2 className="font-editorial text-3xl sm:text-4xl text-ink font-normal mt-2 leading-tight">
-                  El Cuaderno Clínico: ciencia, biomecánica y casos.
-                </h2>
-                <p className="text-sm text-ink-muted mt-3 font-sans leading-relaxed">
-                  Artículos redactados por nuestros doctores para resolver dudas frecuentes sobre ortodoncia invisible, carillas cerámicas y cirugía de implantes.
-                </p>
-              </div>
-              <div>
-                <Link
-                  href="/blog"
-                  className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-sage hover:text-coral transition-colors"
-                >
-                  <span>Ver todas las publicaciones</span>
-                  <ArrowRightIcon className="w-4 h-4" />
-                </Link>
-              </div>
-            </div>
-
-            {/* Articles 3-card Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {BLOG_POSTS.slice(0, 3).map((post) => (
-                <article
-                  key={post.slug}
-                  className="bg-white border border-ink/10 rounded-sm overflow-hidden flex flex-col justify-between shadow-subtle hover:shadow-editorial hover:border-ink/25 transition-all group"
-                >
-                  <div>
-                    <div className="relative aspect-[16/10] w-full bg-ink/5 overflow-hidden">
-                      <Image
-                        src={post.featuredImage}
-                        alt={post.title}
-                        fill
-                        sizes="(max-width: 768px) 100vw, 33vw"
-                        className="object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
-                    </div>
-                    <div className="p-6">
-                      <div className="flex items-center justify-between text-[11px] mb-3">
-                        <span className="text-sage font-semibold uppercase tracking-wider">
-                          {post.category}
-                        </span>
-                        <span className="text-ink-muted">{post.readTime}</span>
-                      </div>
-                      <h3 className="font-editorial text-xl text-ink font-normal group-hover:text-sage transition-colors leading-snug line-clamp-2">
-                        <Link href={`/blog/${post.slug}`}>
-                          {post.title}
-                        </Link>
-                      </h3>
-                      <p className="text-xs text-ink-muted mt-3 leading-relaxed line-clamp-3">
-                        {post.excerpt}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="p-6 pt-0 border-t border-ink/5 mt-4">
-                    <div className="pt-4 flex items-center justify-between text-xs">
-                      <span className="text-[11px] text-ink-muted">
-                        {post.author.name}
-                      </span>
-                      <Link
-                        href={`/blog/${post.slug}`}
-                        className="inline-flex items-center gap-1 font-semibold uppercase tracking-wider text-sage hover:text-coral transition-colors"
-                      >
-                        <span>Leer</span>
-                        <ArrowRightIcon className="w-3 h-3 transition-transform group-hover:translate-x-1" />
-                      </Link>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* SECTION: Comunidad y Redes Sociales */}
-        <SocialCommunity />
 
         {/* SECTION: CTA Final hacia /contacto */}
         <section className="py-24 bg-sage-deep text-porcelain">

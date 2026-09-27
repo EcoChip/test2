@@ -42,7 +42,7 @@ export default function InvisalignPage() {
     {
       num: "05",
       title: "Retención definitiva Vivera®",
-      desc: "Al finalizar los micromovimientos activos, colocamos retenedores transparentes Vivera® un 30% más resistentes que los plásticos estándar, garantizando que tu sonrisa se mantenga estable de por vida.",
+      desc: "Al finalizar la fase activa, colocamos retenedores transparentes Vivera®, diseñados con material de alta resistencia para garantizar que tu sonrisa se mantenga estable a largo plazo.",
     },
   ];
 
@@ -143,7 +143,7 @@ export default function InvisalignPage() {
                 No todos los plásticos dentales son iguales. Los alineadores de bajo coste utilizan plásticos rígidos de una sola capa que pierden fuerza elástica a las pocas horas de su colocación.
               </p>
               <p className="text-sm text-ink-muted leading-relaxed font-sans">
-                Invisalign cuenta con más de 800 patentes activas. Su fórmula <strong>SmartTrack®</strong> combina una matriz polimérica elastomérica que almacena energía y aplica una fuerza suave y continua durante los 14 días de uso activo, protegiendo las raíces dentales y las encías.
+                Invisalign® cuenta con años de investigación biomecánica y desarrollo tecnológico. Su fórmula <strong>SmartTrack®</strong> combina una matriz polimérica elastomérica que aplica una fuerza constante y suave durante su uso activo, protegiendo las raíces dentales y las encías.
               </p>
               <div className="pt-2">
                 <div className="p-4 bg-porcelain-dark rounded-sm border border-ink/10">
@@ -151,8 +151,7 @@ export default function InvisalignPage() {
                     Categoría Diamond Apex Provider
                   </div>
                   <p className="text-xs text-ink-muted mt-1">
-                    La Dra. Elena Santamaría se encuentra en el 1% de ortodoncistas de mayor volumen 
-                    y experiencia clínica con Invisalign en Europa.
+                    La Dra. Elena Santamaría cuenta con amplia experiencia clínica y máxima categoría en ortodoncia invisible Invisalign en Madrid.
                   </p>
                 </div>
               </div>
@@ -168,8 +167,7 @@ export default function InvisalignPage() {
                     Fuerza Constante y Suave
                   </h3>
                   <p className="text-xs text-ink-muted leading-relaxed">
-                    Movimiento de 0.25 mm por alineador. Biomecánica controlada que respeta el flujo vascular 
-                    periodontal y disminuye la sensación de tensión.
+                    Fuerza continua y suave sobre cada pieza dental, respetando el tejido periodontal y disminuyendo la sensación de molestia.
                   </p>
                 </div>
 
@@ -182,7 +180,7 @@ export default function InvisalignPage() {
                   </h3>
                   <p className="text-xs text-ink-muted leading-relaxed">
                     Corte gingival festoneado que coincide con el margen de la encía, logrando que el alineador 
-                    sea 100% invisible incluso en conversaciones a corta distancia.
+                    sea prácticamente invisible incluso en conversaciones a corta distancia.
                   </p>
                 </div>
 

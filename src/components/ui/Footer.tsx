@@ -85,11 +85,6 @@ export function Footer() {
                   Ubicación & Acceso
                 </Link>
               </li>
-              <li>
-                <Link href="/blog" className="hover:text-coral transition-colors font-medium text-porcelain">
-                  Blog Clínico →
-                </Link>
-              </li>
             </ul>
           </div>
 
@@ -114,25 +109,6 @@ export function Footer() {
                 <span>Lunes a Viernes: 09:00 - 20:30 h (Ininterrumpido)</span>
               </div>
             </div>
-
-            {/* Social Icons row */}
-            <div className="pt-3 flex items-center gap-4 text-porcelain/70">
-              <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="hover:text-coral transition-colors" aria-label="Instagram">
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect width="20" height="20" x="2" y="2" rx="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/></svg>
-              </a>
-              <a href="https://linkedin.com" target="_blank" rel="noopener noreferrer" className="hover:text-coral transition-colors" aria-label="LinkedIn">
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect width="4" height="12" x="2" y="9"/><circle cx="4" cy="4" r="2"/></svg>
-              </a>
-              <a href="https://youtube.com" target="_blank" rel="noopener noreferrer" className="hover:text-coral transition-colors" aria-label="YouTube">
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17"/><polygon points="10 15 15 12 10 9 10 15" fill="currentColor"/></svg>
-              </a>
-              <a href="https://tiktok.com" target="_blank" rel="noopener noreferrer" className="hover:text-coral transition-colors" aria-label="TikTok">
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-2.88 2.89 2.89 2.89 0 0 1-2.89-2.89 2.89 2.89 0 0 1 2.89-2.89c.35 0 .69.06 1 .17V9.45a6.35 6.35 0 0 0-1-.08 6.34 6.34 0 0 0-6.34 6.34 6.34 6.34 0 0 0 6.34 6.34 6.34 6.34 0 0 0 6.34-6.34V8.71a8.21 8.21 0 0 0 4.76 1.49V6.75a4.78 4.78 0 0 1-1-.06z"/></svg>
-              </a>
-              <a href="https://wa.me/34600000000" target="_blank" rel="noopener noreferrer" className="hover:text-coral transition-colors" aria-label="WhatsApp">
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-              </a>
-            </div>
           </div>
         </div>
 
@@ -142,9 +118,6 @@ export function Footer() {
             © {new Date().getFullYear()} AURA Dental Architecture S.L.P. Todos los derechos reservados.
           </div>
           <div className="flex flex-wrap items-center gap-6">
-            <Link href="/blog" className="hover:text-porcelain transition-colors font-medium">
-              Blog Clínico
-            </Link>
             <Link href="/aviso-legal" className="hover:text-porcelain transition-colors">
               Aviso Legal
             </Link>

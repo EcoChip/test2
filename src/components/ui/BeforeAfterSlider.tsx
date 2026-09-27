@@ -87,13 +87,50 @@ export function BeforeAfterSlider() {
     setSliderPos(clampedPercent);
   }, []);
 
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setIsDragging(true);
+    if (e.touches.length > 0) {
+      handleMove(e.touches[0].clientX);
+    }
+  };
+
   const handleTouchMove = (e: React.TouchEvent) => {
-    handleMove(e.touches[0].clientX);
+    if (e.touches.length > 0) {
+      handleMove(e.touches[0].clientX);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    setIsDragging(false);
+  };
+
+  const handleTouchCancel = () => {
+    setIsDragging(false);
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging) return;
     handleMove(e.clientX);
+  };
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    setIsDragging(true);
+    try {
+      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {}
+    handleMove(e.clientX);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDragging) return;
+    handleMove(e.clientX);
+  };
+
+  const handlePointerUp = (e: React.PointerEvent) => {
+    setIsDragging(false);
+    try {
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {}
   };
 
   return (
@@ -107,7 +144,7 @@ export function BeforeAfterSlider() {
               setActiveCaseIndex(idx);
               setSliderPos(50);
             }}
-            className={`text-xs uppercase tracking-wider px-4 py-2 rounded-sm border transition-all text-left ${
+            className={`text-xs uppercase tracking-wider px-4 py-2.5 min-h-[44px] flex items-center rounded-sm border transition-all text-left ${
               activeCaseIndex === idx
                 ? "bg-sage text-porcelain border-sage font-medium shadow-sm"
                 : "bg-transparent text-ink/70 border-ink/15 hover:border-ink/40"
@@ -123,12 +160,21 @@ export function BeforeAfterSlider() {
         <div className="lg:col-span-8">
           <div
             ref={containerRef}
+            onClick={(e) => handleMove(e.clientX)}
             onMouseDown={() => setIsDragging(true)}
             onMouseUp={() => setIsDragging(false)}
             onMouseLeave={() => setIsDragging(false)}
             onMouseMove={handleMouseMove}
+            onTouchStart={handleTouchStart}
             onTouchMove={handleTouchMove}
-            className="relative w-full aspect-[4/3] sm:aspect-[16/10] rounded-sm overflow-hidden select-none cursor-ew-resize border border-ink/10 bg-porcelain-dark shadow-editorial"
+            onTouchEnd={handleTouchEnd}
+            onTouchCancel={handleTouchCancel}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handleTouchCancel}
+            style={{ touchAction: "none" }}
+            className="relative w-full aspect-[4/3] sm:aspect-[16/10] rounded-sm overflow-hidden select-none cursor-ew-resize border border-ink/10 bg-porcelain-dark shadow-editorial touch-none"
           >
             {/* After Image (Full width background) */}
             <div className="absolute inset-0 w-full h-full">
@@ -168,8 +214,8 @@ export function BeforeAfterSlider() {
               className="absolute top-0 bottom-0 w-0.5 bg-porcelain shadow-lg pointer-events-none z-20"
               style={{ left: `${sliderPos}%` }}
             >
-              <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-porcelain border border-ink/20 flex items-center justify-center shadow-md">
-                <svg className="w-4 h-4 text-ink" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-11 h-11 rounded-full bg-porcelain border border-ink/20 flex items-center justify-center shadow-lg">
+                <svg className="w-5 h-5 text-ink" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="m9 18-6-6 6-6" />
                   <path d="m15 6 6 6-6 6" />
                 </svg>

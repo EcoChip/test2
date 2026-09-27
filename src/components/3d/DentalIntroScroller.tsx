@@ -27,8 +27,8 @@ const BEATS: BeatConfig[] = [
   { id: 1, label: "01 / INTRO", shortTitle: "Presentación", start: 0.00, peakStart: 0.00, peakEnd: 0.08, end: 0.11 },
   { id: 2, label: "02 / OCLUSIÓN", shortTitle: "Anatomía Dual", start: 0.11, peakStart: 0.14, peakEnd: 0.22, end: 0.25 },
   { id: 3, label: "03 / APERTURA", shortTitle: "Dinámica Mandibular", start: 0.26, peakStart: 0.30, peakEnd: 0.40, end: 0.42 },
-  { id: 4, label: "04 / MATERIAL", shortTitle: "SmartTrack® 0.75mm", start: 0.42, peakStart: 0.45, peakEnd: 0.58, end: 0.60 },
-  { id: 5, label: "05 / PROGRESIÓN", shortTitle: "Algoritmo ClinCheck®", start: 0.60, peakStart: 0.62, peakEnd: 0.75, end: 0.77 },
+  { id: 4, label: "04 / MATERIAL", shortTitle: "SmartTrack®", start: 0.42, peakStart: 0.45, peakEnd: 0.58, end: 0.60 },
+  { id: 5, label: "05 / PROGRESIÓN", shortTitle: "ClinCheck® 3D", start: 0.60, peakStart: 0.62, peakEnd: 0.75, end: 0.77 },
   { id: 6, label: "06 / COMPARATIVA", shortTitle: "vs Brackets", start: 0.76, peakStart: 0.78, peakEnd: 0.87, end: 0.88 },
   { id: 7, label: "07 / LIBERTAD", shortTitle: "Uso Diario", start: 0.88, peakStart: 0.89, peakEnd: 0.95, end: 0.96 },
   { id: 8, label: "08 / ENTRADA", shortTitle: "Bienvenido a AURA", start: 0.95, peakStart: 0.97, peakEnd: 0.99, end: 1.00 },
@@ -50,10 +50,11 @@ export function DentalIntroScroller() {
   const [progress, setProgress] = useState(0);
   const [canvasReady, setCanvasReady] = useState(false);
   const [hasWebGL, setHasWebGL] = useState<boolean | null>(null);
+  const [isLowEnd, setIsLowEnd] = useState<boolean>(false);
   const [reducedMotion, setReducedMotion] = useState(false);
   const [activeBeatId, setActiveBeatId] = useState(1);
 
-  // Check WebGL (1 or 2) and prefers-reduced-motion on mount
+  // Check WebGL (1 or 2), low-end hardware, and prefers-reduced-motion on mount
   useEffect(() => {
     gsap.registerPlugin(ScrollTrigger);
 
@@ -63,7 +64,7 @@ export function DentalIntroScroller() {
     const motionHandler = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
     motionQuery.addEventListener("change", motionHandler);
 
-    // Detect WebGL support (supports both WebGL 2 and WebGL 1 for maximum mobile compatibility)
+    // Detect WebGL support and low-end devices
     try {
       const canvas = document.createElement("canvas");
       const gl =
@@ -71,6 +72,17 @@ export function DentalIntroScroller() {
         canvas.getContext("webgl") ||
         canvas.getContext("experimental-webgl");
       setHasWebGL(!!gl);
+
+      if (gl) {
+        const cores = navigator.hardwareConcurrency || 4;
+        const memory = (navigator as unknown as { deviceMemory?: number }).deviceMemory;
+        const maxTextureSize = (gl as WebGLRenderingContext).getParameter(
+          (gl as WebGLRenderingContext).MAX_TEXTURE_SIZE
+        );
+        if (cores < 4 || (memory && memory < 4) || (maxTextureSize && maxTextureSize < 4096)) {
+          setIsLowEnd(true);
+        }
+      }
     } catch {
       setHasWebGL(false);
     }
@@ -88,7 +100,7 @@ export function DentalIntroScroller() {
     return () => clearTimeout(timer);
   }, []);
 
-  // Set up ScrollTrigger scrubbed animation over 1000vh (~900vh of pure scroll travel)
+  // Set up ScrollTrigger scrubbed animation over responsive dvh travel (550dvh mobile, 1000dvh desktop)
   useEffect(() => {
     if (reducedMotion || !containerRef.current) return;
 
@@ -138,16 +150,16 @@ export function DentalIntroScroller() {
     <section
       ref={containerRef}
       className={`relative w-full ${
-        reducedMotion ? "h-screen" : "h-[1000vh]"
+        reducedMotion ? "h-[100dvh]" : "h-[550dvh] md:h-[1000dvh]"
       } bg-obsidian`}
       aria-label="Introducción cinematográfica AURA 3D"
     >
       {/* Sticky Fullscreen Stage */}
-      <div className="sticky top-0 h-screen w-full overflow-hidden flex items-center justify-center">
+      <div className="sticky top-0 h-[100dvh] w-full overflow-hidden flex items-center justify-center">
         
-        {/* Fallback for devices without WebGL */}
-        {hasWebGL === false ? (
-          <div className="relative w-full h-full flex flex-col items-center justify-center bg-obsidian text-porcelain p-6">
+        {/* Fallback for devices without WebGL or low-end mobile devices */}
+        {hasWebGL === false || isLowEnd ? (
+          <div className="relative w-full h-[100dvh] flex flex-col items-center justify-center bg-obsidian text-porcelain p-6">
             <video
               src="/posters/hero-fallback.mp4"
               poster="/posters/hero-poster.jpg"
@@ -159,13 +171,13 @@ export function DentalIntroScroller() {
             />
             <div className="relative z-10 max-w-lg text-center space-y-4">
               <span className="text-xs uppercase tracking-[0.25em] text-coral font-sans font-medium">
-                Simulación 3D ClinCheck
+                Planificación Digital ClinCheck®
               </span>
               <h1 className="font-editorial text-4xl sm:text-5xl font-normal leading-tight">
                 Tu sonrisa, a otro nivel.
               </h1>
               <p className="text-sm text-porcelain/70 font-sans">
-                Alineación dental invisible de precisión milimétrica mediante escáner digital 3D.
+                Alineación dental invisible y arquitectura de la sonrisa con escáner digital 3D.
               </p>
               <div className="pt-4">
                 <a
@@ -308,23 +320,23 @@ export function DentalIntroScroller() {
             >
               <div className="max-w-xl space-y-3 sm:space-y-4 p-4 sm:p-0 rounded-2xl bg-black/50 sm:bg-transparent backdrop-blur-md sm:backdrop-blur-none border border-white/10 sm:border-transparent shadow-lg sm:shadow-none">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-coral/30 bg-coral/10 text-coral text-[10px] font-sans uppercase tracking-[0.2em]">
-                  02 / Escaneo Digital 5D
+                  02 / Escaneo Digital 3D
                 </div>
                 <h2 className="font-editorial text-2xl sm:text-5xl font-normal text-porcelain leading-tight">
                   Anatomía y Oclusión Dual
                 </h2>
                 <p className="text-xs sm:text-base text-porcelain/75 font-sans leading-relaxed">
-                  Ambas arcadas funcionan como un engranaje biomecánico continuo. Capturamos 6.000 imágenes por segundo con nuestro escáner intraoral iTero Element 5D para analizar la relación interoclusal sin pastas molestas.
+                  Ambas arcadas funcionan como un engranaje biomecánico continuo. Mediante escaneo intraoral digital analizamos la relación interoclusal y la alineación dental en tiempo real, sin recurrir a pastas molestas.
                 </p>
                 <div className="flex flex-wrap gap-2 pt-1 sm:pt-2">
                   <span className="px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full bg-white/5 border border-white/10 text-[10px] sm:text-[11px] font-sans text-porcelain/80">
-                    6.000 fotos / seg
+                    Escáner intraoral 3D
                   </span>
                   <span className="px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full bg-white/5 border border-white/10 text-[10px] sm:text-[11px] font-sans text-porcelain/80">
-                    Precisión &lt; 20 µm
+                    Alta definición digital
                   </span>
                   <span className="px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full bg-white/5 border border-white/10 text-[10px] sm:text-[11px] font-sans text-porcelain/80">
-                    Cero moldes
+                    Sin pastas molestas
                   </span>
                 </div>
               </div>
@@ -363,32 +375,32 @@ export function DentalIntroScroller() {
             >
               <div className="max-w-xl space-y-3 sm:space-y-5 p-4 sm:p-0 rounded-2xl bg-black/50 sm:bg-transparent backdrop-blur-md sm:backdrop-blur-none border border-white/10 sm:border-transparent shadow-lg sm:shadow-none">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-emerald-400/30 bg-emerald-400/10 text-emerald-300 text-[10px] font-sans uppercase tracking-[0.2em]">
-                  04 / Nanomaterial SmartTrack®
+                  04 / Material Patentado SmartTrack®
                 </div>
                 <h2 className="font-editorial text-2xl sm:text-5xl font-normal text-porcelain leading-tight">
-                  0.75 mm de Polímero Elastomérico
+                  Polímero Elastomérico Multicapa
                 </h2>
                 <p className="text-xs sm:text-base text-porcelain/75 font-sans leading-relaxed">
-                  Desarrollado tras 8 años de bioingeniería. Ejerce fuerza constante sin deformación plástica. Su transparencia óptica se mimetiza con la luz natural de tu esmalte.
+                  Desarrollado exclusivamente para ortodoncia transparente. Ejerce una fuerza constante y suave sobre el diente para un movimiento más predecible. Su transparencia óptica se adapta a la luz natural del esmalte.
                 </p>
 
                 {/* Technical Specs Grid */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3 pt-1 sm:pt-2">
                   <div className="p-2 sm:p-3 rounded-lg bg-black/40 border border-white/10 backdrop-blur-md">
-                    <div className="font-editorial text-lg sm:text-2xl text-coral">0.75 mm</div>
-                    <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-porcelain/60 mt-0.5">Espesor fino</div>
+                    <div className="font-editorial text-lg sm:text-2xl text-coral">Constante</div>
+                    <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-porcelain/60 mt-0.5">Fuerza suave</div>
                   </div>
                   <div className="p-2 sm:p-3 rounded-lg bg-black/40 border border-white/10 backdrop-blur-md">
-                    <div className="font-editorial text-lg sm:text-2xl text-porcelain">1.52 IOR</div>
-                    <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-porcelain/60 mt-0.5">Refracción</div>
+                    <div className="font-editorial text-lg sm:text-2xl text-porcelain">Translúcido</div>
+                    <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-porcelain/60 mt-0.5">Estética discreta</div>
                   </div>
                   <div className="p-2 sm:p-3 rounded-lg bg-black/40 border border-white/10 backdrop-blur-md">
-                    <div className="font-editorial text-lg sm:text-2xl text-porcelain">&gt;90%</div>
-                    <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-porcelain/60 mt-0.5">Transmisión</div>
+                    <div className="font-editorial text-lg sm:text-2xl text-porcelain">Adaptable</div>
+                    <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-porcelain/60 mt-0.5">Ajuste anatómico</div>
                   </div>
                   <div className="p-2 sm:p-3 rounded-lg bg-black/40 border border-white/10 backdrop-blur-md">
-                    <div className="font-editorial text-lg sm:text-2xl text-emerald-300">0% BPA</div>
-                    <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-porcelain/60 mt-0.5">Biomédico</div>
+                    <div className="font-editorial text-lg sm:text-2xl text-emerald-300">Biomédico</div>
+                    <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-porcelain/60 mt-0.5">Confort y seguridad</div>
                   </div>
                 </div>
               </div>
@@ -407,7 +419,7 @@ export function DentalIntroScroller() {
                   Progresión del Tratamiento
                 </h2>
                 <p className="text-xs sm:text-base text-porcelain/75 font-sans leading-relaxed">
-                  Cada férula desplaza tus dientes entre 0.20 y 0.25 mm con rotaciones axiales controladas por IA.
+                  Cada alineador guía el micromovimiento gradual de tus piezas dentales según la planificación previa realizada por el especialista.
                 </p>
 
                 {/* Animated Interactive Aligner Counter & Progress Bar */}
@@ -431,21 +443,21 @@ export function DentalIntroScroller() {
 
                   <div className="grid grid-cols-3 gap-2 pt-2 border-t border-white/10 text-center">
                     <div>
-                      <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-porcelain/50">Semana</div>
+                      <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-porcelain/50">Etapa</div>
                       <div className="text-[11px] sm:text-xs font-semibold text-porcelain mt-0.5">
-                        {Math.ceil(currentAligner * 1.45)} de 32
+                        Fase {currentAligner} de 22
                       </div>
                     </div>
                     <div>
-                      <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-porcelain/50">Movimiento</div>
+                      <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-porcelain/50">Fuerza</div>
                       <div className="text-[11px] sm:text-xs font-semibold text-coral mt-0.5">
-                        +{(currentAligner * 0.22).toFixed(1)} mm
+                        Constante y suave
                       </div>
                     </div>
                     <div>
-                      <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-porcelain/50">Previsibilidad</div>
+                      <div className="text-[9px] sm:text-[10px] uppercase tracking-wider text-porcelain/50">Planificación</div>
                       <div className="text-[11px] sm:text-xs font-semibold text-emerald-300 mt-0.5">
-                        99.4%
+                        ClinCheck® 3D
                       </div>
                     </div>
                   </div>
@@ -458,7 +470,7 @@ export function DentalIntroScroller() {
               className="absolute inset-0 z-30 pointer-events-none flex items-center justify-center p-4 sm:p-12 max-w-5xl mx-auto w-full transition-opacity duration-200"
               style={{ opacity: opacities[5] }}
             >
-              <div className="w-full space-y-4 sm:space-y-6 max-h-[82vh] overflow-y-auto sm:overflow-visible pr-1 sm:pr-0">
+              <div className="w-full space-y-4 sm:space-y-6 max-h-[82dvh] overflow-y-auto sm:overflow-visible pr-1 sm:pr-0">
                 <div className="text-center space-y-1 sm:space-y-2">
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-purple-400/30 bg-purple-400/10 text-purple-300 text-[10px] font-sans uppercase tracking-[0.2em]">
                     06 / Análisis Comparativo
@@ -550,7 +562,7 @@ export function DentalIntroScroller() {
                     ✨ Higiene oral sin obstáculos
                   </div>
                   <div className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-full bg-white/5 border border-white/10 text-[11px] sm:text-xs font-sans text-porcelain/90">
-                    📸 100% imperceptible en cámara
+                    📸 Prácticamente imperceptible
                   </div>
                 </div>
               </div>

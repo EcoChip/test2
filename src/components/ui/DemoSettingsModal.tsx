@@ -122,7 +122,7 @@ export function DemoSettingsModal({ isOpen, onClose }: DemoSettingsModalProps) {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="relative w-full max-w-2xl max-h-[90vh] bg-obsidian border border-white/20 rounded-2xl shadow-2xl flex flex-col overflow-hidden text-porcelain">
+      <div className="relative w-full max-w-2xl max-h-[90dvh] bg-obsidian border border-white/20 rounded-2xl shadow-2xl flex flex-col overflow-hidden text-porcelain">
         
         {/* Top Prominent Demo Notice */}
         <div className="bg-coral/15 border-b border-coral/30 px-4 sm:px-6 py-2.5 flex items-center justify-between text-xs">
@@ -155,7 +155,7 @@ export function DemoSettingsModal({ isOpen, onClose }: DemoSettingsModalProps) {
         </div>
 
         {/* Themes Grid */}
-        <div className="p-5 sm:p-6 overflow-y-auto space-y-4 max-h-[calc(90vh-180px)]">
+        <div className="p-5 sm:p-6 overflow-y-auto space-y-4 max-h-[calc(90dvh-180px)]">
           {THEMES.map((theme) => {
             const isSelected = activeTheme === theme.id;
             return (
