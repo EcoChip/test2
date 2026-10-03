@@ -17,17 +17,31 @@ export function Header() {
       return;
     }
 
-    const handleScroll = () => {
-      // Intro 3D is pinned for 1000dvh on desktop (550dvh on mobile); threshold when entering light content
+    let threshold = 5000;
+    const calculateThreshold = () => {
       const isMobile = window.innerWidth < 768;
       const factor = isMobile ? 4.8 : 8.8;
-      const threshold = window.innerHeight * factor;
-      setScrolledPastHero(window.scrollY > threshold);
+      threshold = window.innerHeight * factor;
+    };
+    calculateThreshold();
+
+    let isPast = window.scrollY > threshold;
+    setScrolledPastHero(isPast);
+
+    const handleScroll = () => {
+      const nowPast = window.scrollY > threshold;
+      if (nowPast !== isPast) {
+        isPast = nowPast;
+        setScrolledPastHero(nowPast);
+      }
     };
 
-    handleScroll();
+    window.addEventListener("resize", calculateThreshold, { passive: true });
     window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
+    return () => {
+      window.removeEventListener("resize", calculateThreshold);
+      window.removeEventListener("scroll", handleScroll);
+    };
   }, [isHome]);
 
   const isDarkTheme = isHome && !scrolledPastHero;

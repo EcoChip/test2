@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useMemo } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import Lenis from "lenis";
 import { ArrowRightIcon } from "../ui/Icons";
+import { notifyIntroScroll } from "@/lib/scrollStore";
 
 // Dynamically import DentalCanvas to avoid SSR Three.js execution
 const DentalCanvas = dynamic(
@@ -47,24 +49,34 @@ function getBeatOpacity(progress: number, beat: BeatConfig): number {
 
 export function DentalIntroScroller() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [progress, setProgress] = useState(0);
+  const canvasContainerRef = useRef<HTMLDivElement>(null);
+  const crossFadeRef = useRef<HTMLDivElement>(null);
+
+  // Direct DOM references for 8 beat cards (Zero React setState during scroll)
+  const beatCardRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const dotIndicatorRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const dotLabelRefs = useRef<(HTMLSpanElement | null)[]>([]);
+
+  // Direct DOM references for Beat 5 dynamic aligner counter
+  const alignerNumRef = useRef<HTMLSpanElement>(null);
+  const alignerBarRef = useRef<HTMLDivElement>(null);
+  const alignerPhaseRef = useRef<HTMLDivElement>(null);
+
   const [canvasReady, setCanvasReady] = useState(false);
   const [hasWebGL, setHasWebGL] = useState<boolean | null>(null);
   const [isLowEnd, setIsLowEnd] = useState<boolean>(false);
   const [reducedMotion, setReducedMotion] = useState(false);
-  const [activeBeatId, setActiveBeatId] = useState(1);
 
-  // Check WebGL (1 or 2), low-end hardware, and prefers-reduced-motion on mount
+  // Check WebGL and hardware capability
   useEffect(() => {
     gsap.registerPlugin(ScrollTrigger);
+    ScrollTrigger.config({ ignoreMobileResize: true });
 
-    // Detect prefers-reduced-motion
     const motionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     setReducedMotion(motionQuery.matches);
     const motionHandler = (e: MediaQueryListEvent) => setReducedMotion(e.matches);
     motionQuery.addEventListener("change", motionHandler);
 
-    // Detect WebGL support and low-end devices
     try {
       const canvas = document.createElement("canvas");
       const gl =
@@ -76,10 +88,7 @@ export function DentalIntroScroller() {
       if (gl) {
         const cores = navigator.hardwareConcurrency || 4;
         const memory = (navigator as unknown as { deviceMemory?: number }).deviceMemory;
-        const maxTextureSize = (gl as WebGLRenderingContext).getParameter(
-          (gl as WebGLRenderingContext).MAX_TEXTURE_SIZE
-        );
-        if (cores < 4 || (memory && memory < 4) || (maxTextureSize && maxTextureSize < 4096)) {
+        if (cores < 2 || (memory && memory < 2)) {
           setIsLowEnd(true);
         }
       }
@@ -92,106 +101,149 @@ export function DentalIntroScroller() {
     };
   }, []);
 
-  // Safety fallback: ensure poster fades out after initial mount even on slow mobile networks
+  // Safety fallback for poster fade out
   useEffect(() => {
     const timer = setTimeout(() => {
       setCanvasReady(true);
-    }, 2200);
+    }, 2000);
     return () => clearTimeout(timer);
   }, []);
 
-  // Handle orientation change and screen resize with ScrollTrigger refresh
-  useEffect(() => {
-    const handleOrientationOrResize = () => {
-      const timer = setTimeout(() => {
-        ScrollTrigger.refresh();
-      }, 150);
-      return () => clearTimeout(timer);
-    };
+  const lastOpacitiesRef = useRef<number[]>([1, 0, 0, 0, 0, 0, 0, 0]);
+  const lastAlignerRef = useRef<number>(-1);
+  const lastCrossFadeRef = useRef<number>(-1);
+  const lastCanvasDisplayRef = useRef<string>("block");
 
-    window.addEventListener("resize", handleOrientationOrResize);
-    window.addEventListener("orientationchange", handleOrientationOrResize);
-    return () => {
-      window.removeEventListener("resize", handleOrientationOrResize);
-      window.removeEventListener("orientationchange", handleOrientationOrResize);
-    };
+  // Direct DOM Mutation Function (Zero React reconciliation / zero setState during scroll)
+  const updateDomStorytelling = useCallback((p: number) => {
+    // 1. Notify 3D engine directly via mutable store
+    notifyIntroScroll(p);
+
+    // 2. Update 8 Beat Cards with dirty-checking
+    for (let i = 0; i < BEATS.length; i++) {
+      const beat = BEATS[i];
+      const opacity = getBeatOpacity(p, beat);
+      const prevOpacity = lastOpacitiesRef.current[i];
+
+      if (Math.abs(opacity - prevOpacity) > 0.005) {
+        lastOpacitiesRef.current[i] = opacity;
+        const cardEl = beatCardRefs.current[i];
+        if (cardEl) {
+          cardEl.style.opacity = opacity.toFixed(3);
+          cardEl.style.pointerEvents = opacity > 0.1 ? "auto" : "none";
+          cardEl.style.visibility = opacity > 0.001 ? "visible" : "hidden";
+        }
+
+        // 3. Update Storyline Dots
+        const isActive = p >= beat.start && p <= beat.end;
+        const dotEl = dotIndicatorRefs.current[i];
+        const labelEl = dotLabelRefs.current[i];
+        if (dotEl) {
+          dotEl.style.width = isActive ? "1.75rem" : "0.5rem";
+          dotEl.style.backgroundColor = isActive ? "#E1785A" : "rgba(255, 255, 255, 0.2)";
+          dotEl.style.boxShadow = isActive ? "0 0 8px rgba(230, 110, 80, 0.8)" : "none";
+        }
+        if (labelEl) {
+          labelEl.style.opacity = isActive ? "1" : "0";
+          labelEl.style.color = isActive ? "#FAF7F2" : "rgba(250, 247, 242, 0.3)";
+        }
+      }
+    }
+
+    // 4. Update Beat 5 Dynamic Aligner Counter
+    const p5 = Math.min(1, Math.max(0, (p - 0.62) / (0.75 - 0.62)));
+    const currentAligner = Math.min(22, Math.max(1, Math.round(1 + p5 * 21)));
+    if (currentAligner !== lastAlignerRef.current) {
+      lastAlignerRef.current = currentAligner;
+      if (alignerNumRef.current) {
+        alignerNumRef.current.textContent = `Alineador ${currentAligner} `;
+      }
+      if (alignerBarRef.current) {
+        alignerBarRef.current.style.width = `${((currentAligner / 22) * 100).toFixed(1)}%`;
+      }
+      if (alignerPhaseRef.current) {
+        alignerPhaseRef.current.textContent = `Fase ${currentAligner} de 22`;
+      }
+    }
+
+    // 5. Update Seamless Porcelain Cross-Fade
+    let crossFadeOpacity = 0;
+    if (p >= 0.94) {
+      crossFadeOpacity = Math.min(1, (p - 0.94) / 0.05);
+    }
+    if (Math.abs(crossFadeOpacity - lastCrossFadeRef.current) > 0.005) {
+      lastCrossFadeRef.current = crossFadeOpacity;
+      if (crossFadeRef.current) {
+        crossFadeRef.current.style.opacity = crossFadeOpacity.toFixed(3);
+        crossFadeRef.current.style.visibility = crossFadeOpacity > 0.001 ? "visible" : "hidden";
+      }
+    }
+
+    // 6. Freeze/Hide Canvas when completely past intro to free GPU
+    if (canvasContainerRef.current) {
+      canvasContainerRef.current.style.display = p >= 0.999 ? "none" : "block";
+    }
   }, []);
 
-  // Set up ScrollTrigger scrubbed animation over responsive dvh travel (550dvh mobile, 1000dvh desktop)
+  // Setup Lenis + GSAP Ticker + ScrollTrigger (Single Unified Render Loop)
   useEffect(() => {
     if (reducedMotion || !containerRef.current) return;
+
+    // Single unified scroll driver: Lenis synchronized with GSAP ticker
+    const lenis = new Lenis({
+      duration: 0.9,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      smoothWheel: true,
+      touchMultiplier: 1.5,
+    });
+
+    lenis.on("scroll", ScrollTrigger.update);
+
+    const tickerCallback = (time: number) => {
+      lenis.raf(time * 1000);
+    };
+    gsap.ticker.add(tickerCallback);
+    gsap.ticker.lagSmoothing(0);
 
     const ctx = gsap.context(() => {
       ScrollTrigger.create({
         trigger: containerRef.current,
         start: "top top",
         end: "bottom bottom",
-        scrub: 0.5,
-        onToggle: (self) => {
-          // Lock iOS Safari overscroll bounce while pinned to avoid desynchronization
-          if (typeof document !== "undefined") {
-            document.body.style.overscrollBehaviorY = self.isActive ? "none" : "";
-          }
-        },
+        scrub: 0.25,
         onUpdate: (self) => {
-          const p = self.progress;
-          setProgress(p);
-
-          // Find current active beat (only triggers state update on actual transition)
-          const current = BEATS.find((b) => p >= b.start && p <= b.end);
-          if (current) {
-            setActiveBeatId((prev) => (prev !== current.id ? current.id : prev));
-          }
+          updateDomStorytelling(self.progress);
         },
       });
     }, containerRef);
 
+    // Initial DOM update for Beat 1
+    updateDomStorytelling(0);
+
     return () => {
       ctx.revert();
-      if (typeof document !== "undefined") {
-        document.body.style.overscrollBehaviorY = "";
-      }
+      gsap.ticker.remove(tickerCallback);
+      lenis.destroy();
     };
-  }, [reducedMotion]);
-
-  // Dynamic Aligner count for Beat 5 (range 0.62 to 0.75)
-  const currentAligner = useMemo(() => {
-    const p5 = Math.min(1, Math.max(0, (progress - 0.62) / (0.75 - 0.62)));
-    return Math.min(22, Math.max(1, Math.round(1 + p5 * 21)));
-  }, [progress]);
-
-  // Seamless Porcelain Cross-Fade (cross-fades at the pass-through threshold 0.94 -> 0.99)
-  let crossFadeOpacity = 0;
-  if (progress >= 0.94) {
-    crossFadeOpacity = Math.min(1, (progress - 0.94) / 0.05);
-  }
-
-  // Determine if canvas should be active (hide once completely past intro to free GPU resources)
-  const isPastIntro = progress >= 0.999;
-
-  // Opacities for the 8 beats
-  const opacities = useMemo(() => {
-    return BEATS.map((beat) => getBeatOpacity(progress, beat));
-  }, [progress]);
+  }, [reducedMotion, updateDomStorytelling]);
 
   return (
     <section
       ref={containerRef}
       className={`relative w-full ${
-        reducedMotion ? "h-[100dvh]" : "h-[550dvh] md:h-[1000dvh]"
-      } bg-obsidian overscroll-none`}
+        reducedMotion ? "h-[100svh]" : "h-[550svh] md:h-[1000svh]"
+      } bg-[#0B0F0D] overscroll-none`}
       style={{ overscrollBehavior: "none", overscrollBehaviorY: "none" }}
       aria-label="Introducción cinematográfica AURA 3D"
     >
-      {/* Sticky Fullscreen Stage */}
+      {/* Sticky Fullscreen Stage (Using svh for Safari iOS browser bar immunity) */}
       <div 
-        className="sticky top-0 h-[100dvh] w-full overflow-hidden flex items-center justify-center overscroll-none"
+        className="sticky top-0 h-[100svh] w-full overflow-hidden flex items-center justify-center overscroll-none bg-[#0B0F0D]"
         style={{ overscrollBehavior: "none", overscrollBehaviorY: "none" }}
       >
-        
-        {/* Fallback for devices without WebGL or low-end mobile devices */}
+        {/* Fallback for devices without WebGL */}
         {hasWebGL === false || isLowEnd ? (
-          <div className="relative w-full h-[100dvh] flex flex-col items-center justify-center bg-obsidian text-porcelain p-6">
+          <div className="relative w-full h-[100svh] flex flex-col items-center justify-center bg-[#0B0F0D] text-porcelain p-6">
             <video
               src="/posters/hero-fallback.mp4"
               poster="/posters/hero-poster.jpg"
@@ -223,7 +275,7 @@ export function DentalIntroScroller() {
           </div>
         ) : (
           <>
-            {/* High Priority Static Poster for Instant LCP (< 1.8s) */}
+            {/* High Priority Static Poster for Instant LCP (< 1.8s) & Zero White Flashes */}
             <div
               className={`absolute inset-0 z-20 transition-opacity duration-500 pointer-events-none ${
                 canvasReady ? "opacity-0" : "opacity-100"
@@ -248,25 +300,22 @@ export function DentalIntroScroller() {
               }}
             />
 
-            {/* 3D Canvas Stage */}
+            {/* 3D Canvas Stage (Single unified canvas, paused when past intro) */}
             <div
+              ref={canvasContainerRef}
               className="absolute inset-0 z-10 w-full h-full"
-              style={{
-                display: isPastIntro ? "none" : "block",
-              }}
             >
               <DentalCanvas
-                progress={reducedMotion ? 0.35 : progress}
                 reducedMotion={reducedMotion}
                 onCanvasReady={() => setCanvasReady(true)}
               />
             </div>
 
-            {/* Top Right Quick Skip Button with Safe Area Inset and 44px Touch Target */}
+            {/* Top Right Quick Skip Button */}
             <div className="absolute top-[max(1rem,env(safe-area-inset-top))] right-[max(1rem,env(safe-area-inset-right))] sm:top-6 sm:right-6 z-40">
               <a
                 href="#contenido-home"
-                className="group inline-flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 min-h-[44px] rounded-full border border-white/15 bg-black/50 hover:bg-black/70 backdrop-blur-md text-xs font-sans tracking-wider text-porcelain/80 hover:text-white transition-all shadow-subtle pointer-events-auto"
+                className="group inline-flex items-center gap-1.5 sm:gap-2 px-3.5 sm:px-4 py-2 min-h-[44px] rounded-full border border-white/15 bg-[#0B0F0D]/80 hover:bg-[#0B0F0D] text-xs font-sans tracking-wider text-porcelain/80 hover:text-white transition-all shadow-subtle pointer-events-auto"
                 aria-label="Saltar secuencia 3D e ir directo al contenido de la clínica"
               >
                 <span>Saltar intro</span>
@@ -274,50 +323,39 @@ export function DentalIntroScroller() {
               </a>
             </div>
 
-            {/* Right Side Beat Navigation / Storytelling Tracker (Desktop/Tablet) */}
+            {/* Right Side Storyline Navigation (Updated directly via DOM) */}
             <div className="hidden lg:flex flex-col gap-2.5 absolute right-8 top-1/2 -translate-y-1/2 z-30 pointer-events-none">
               <div className="text-[10px] uppercase font-mono tracking-[0.25em] text-porcelain/40 mb-1">
                 Storyline
               </div>
-              {BEATS.map((beat) => {
-                const isActive = activeBeatId === beat.id;
-                return (
+              {BEATS.map((beat, idx) => (
+                <div key={beat.id} className="flex items-center gap-3">
                   <div
-                    key={beat.id}
-                    className="flex items-center gap-3 transition-all duration-300"
+                    ref={(el) => { dotIndicatorRefs.current[idx] = el; }}
+                    className="h-1.5 w-2 rounded-full bg-white/20 transition-all duration-300"
+                  />
+                  <span
+                    ref={(el) => { dotLabelRefs.current[idx] = el; }}
+                    className="text-[11px] font-sans tracking-wider uppercase opacity-0 text-porcelain/30 transition-all duration-300 font-semibold"
                   >
-                    <div
-                      className={`h-1.5 rounded-full transition-all duration-300 ${
-                        isActive
-                          ? "w-7 bg-coral shadow-[0_0_8px_rgba(230,110,80,0.8)]"
-                          : "w-2 bg-white/20"
-                      }`}
-                    />
-                    <span
-                      className={`text-[11px] font-sans tracking-wider uppercase transition-colors duration-300 ${
-                        isActive
-                          ? "text-porcelain font-semibold opacity-100"
-                          : "text-porcelain/30 opacity-0"
-                      }`}
-                    >
-                      {beat.shortTitle}
-                    </span>
-                  </div>
-                );
-              })}
+                    {beat.shortTitle}
+                  </span>
+                </div>
+              ))}
             </div>
 
             {/* ======================================================== */}
-            {/* 8 BEAT STORYTELLING UI OVERLAYS (PORTRAIT REFLOW & SAFE) */}
+            {/* 8 BEAT STORYTELLING OVERLAYS (NO BACKDROP BLUR OVER CANVAS) */}
             {/* ======================================================== */}
 
-            {/* BEAT 1: PRESENTACIÓN (0.00 - 0.08 hold) */}
+            {/* BEAT 1: PRESENTACIÓN */}
             <div
-              className="absolute inset-0 z-30 pointer-events-none flex flex-col justify-between p-5 sm:p-12 md:p-16 pt-[max(4.5rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))] pl-[max(1.25rem,env(safe-area-inset-left))] pr-[max(1.25rem,env(safe-area-inset-right))] max-w-7xl mx-auto w-full transition-opacity duration-200"
-              style={{ opacity: reducedMotion ? 1 : opacities[0] }}
+              ref={(el) => { beatCardRefs.current[0] = el; }}
+              className="absolute inset-0 z-30 pointer-events-none flex flex-col justify-between p-5 sm:p-12 md:p-16 pt-[max(4.5rem,env(safe-area-inset-top))] pb-[max(2rem,env(safe-area-inset-bottom))] pl-[max(1.25rem,env(safe-area-inset-left))] pr-[max(1.25rem,env(safe-area-inset-right))] max-w-7xl mx-auto w-full transition-opacity duration-75"
+              style={{ opacity: 1 }}
             >
               <div>
-                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-white/10 bg-white/5 backdrop-blur-md">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-white/10 bg-[#0B0F0D]/75">
                   <span className="w-1.5 h-1.5 rounded-full bg-coral animate-pulse" />
                   <span className="text-[11px] sm:text-xs uppercase tracking-[0.2em] text-porcelain/90 font-sans font-medium">
                     Invisalign® Diamond Apex Provider
@@ -345,13 +383,13 @@ export function DentalIntroScroller() {
               </div>
             </div>
 
-            {/* BEAT 2: ROTACIÓN LENTA / ANATOMÍA DUAL (0.14 - 0.22 hold) */}
-            {/* Top reflow in mobile portrait: card in upper area, model in lower-middle */}
+            {/* BEAT 2: ANATOMÍA DUAL */}
             <div
-              className="absolute inset-0 z-30 pointer-events-none flex items-start sm:items-center p-4 sm:p-12 md:p-16 pt-[max(4.75rem,env(safe-area-inset-top))] sm:pt-12 pl-[max(1.25rem,env(safe-area-inset-left))] pr-[max(1.25rem,env(safe-area-inset-right))] max-w-7xl mx-auto w-full transition-opacity duration-200"
-              style={{ opacity: opacities[1] }}
+              ref={(el) => { beatCardRefs.current[1] = el; }}
+              className="absolute inset-0 z-30 pointer-events-none flex items-start sm:items-center p-4 sm:p-12 md:p-16 pt-[max(4.75rem,env(safe-area-inset-top))] sm:pt-12 pl-[max(1.25rem,env(safe-area-inset-left))] pr-[max(1.25rem,env(safe-area-inset-right))] max-w-7xl mx-auto w-full transition-opacity duration-75"
+              style={{ opacity: 0, visibility: "hidden" }}
             >
-              <div className="max-w-xl space-y-3 sm:space-y-4 p-5 sm:p-0 rounded-2xl bg-black/70 sm:bg-transparent backdrop-blur-xl sm:backdrop-blur-none border border-white/15 sm:border-transparent shadow-2xl sm:shadow-none w-full sm:w-auto">
+              <div className="max-w-xl space-y-3 sm:space-y-4 p-5 sm:p-0 rounded-2xl bg-[#0B0F0D]/90 sm:bg-transparent border border-white/10 sm:border-transparent shadow-2xl sm:shadow-none w-full sm:w-auto">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-coral/30 bg-coral/10 text-coral text-[11px] sm:text-xs font-sans uppercase tracking-[0.2em]">
                   02 / Escaneo Digital 3D
                 </div>
@@ -375,13 +413,13 @@ export function DentalIntroScroller() {
               </div>
             </div>
 
-            {/* BEAT 3: APERTURA DE LA MORDIDA (0.30 - 0.40 hold) */}
-            {/* Top reflow in mobile portrait: jaw opens downwards in lower area */}
+            {/* BEAT 3: APERTURA Y DESOCLUSIÓN */}
             <div
-              className="absolute inset-0 z-30 pointer-events-none flex items-start sm:items-center justify-start sm:justify-end p-4 sm:p-12 md:p-16 pt-[max(4.75rem,env(safe-area-inset-top))] sm:pt-12 pl-[max(1.25rem,env(safe-area-inset-left))] pr-[max(1.25rem,env(safe-area-inset-right))] max-w-7xl mx-auto w-full transition-opacity duration-200"
-              style={{ opacity: opacities[2] }}
+              ref={(el) => { beatCardRefs.current[2] = el; }}
+              className="absolute inset-0 z-30 pointer-events-none flex items-start sm:items-center justify-start sm:justify-end p-4 sm:p-12 md:p-16 pt-[max(4.75rem,env(safe-area-inset-top))] sm:pt-12 pl-[max(1.25rem,env(safe-area-inset-left))] pr-[max(1.25rem,env(safe-area-inset-right))] max-w-7xl mx-auto w-full transition-opacity duration-75"
+              style={{ opacity: 0, visibility: "hidden" }}
             >
-              <div className="max-w-xl space-y-3 sm:space-y-4 text-left sm:text-right p-5 sm:p-0 rounded-2xl bg-black/70 sm:bg-transparent backdrop-blur-xl sm:backdrop-blur-none border border-white/15 sm:border-transparent shadow-2xl sm:shadow-none w-full sm:w-auto">
+              <div className="max-w-xl space-y-3 sm:space-y-4 text-left sm:text-right p-5 sm:p-0 rounded-2xl bg-[#0B0F0D]/90 sm:bg-transparent border border-white/10 sm:border-transparent shadow-2xl sm:shadow-none w-full sm:w-auto">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-amber-400/30 bg-amber-400/10 text-amber-300 text-[11px] sm:text-xs font-sans uppercase tracking-[0.2em]">
                   03 / Dinámica Mandibular
                 </div>
@@ -391,7 +429,7 @@ export function DentalIntroScroller() {
                 <p className="text-sm sm:text-base text-porcelain/85 font-sans leading-relaxed">
                   Desacople vertical milimétrico. Cada movimiento respeta la articulación temporomandibular (ATM) y la guía canina, corrigiendo sobremordida o apiñamiento severo con vectores axiales.
                 </p>
-                <div className="p-3.5 sm:p-4 rounded-xl bg-black/60 border border-white/15 backdrop-blur-md inline-block text-left max-w-md">
+                <div className="p-3.5 sm:p-4 rounded-xl bg-[#0B0F0D]/85 border border-white/15 inline-block text-left max-w-md shadow-xl">
                   <div className="text-xs uppercase tracking-wider text-coral font-medium mb-1">
                     ATM Free-Stress Protocol
                   </div>
@@ -402,13 +440,13 @@ export function DentalIntroScroller() {
               </div>
             </div>
 
-            {/* BEAT 4: ZOOM AL MATERIAL SMARTTRACK (0.45 - 0.58 hold) */}
-            {/* Bottom reflow in mobile portrait: card in bottom safe area, macro zoom in upper 60% */}
+            {/* BEAT 4: ZOOM SMARTTRACK */}
             <div
-              className="absolute inset-0 z-30 pointer-events-none flex flex-col justify-end sm:justify-center items-center sm:items-start p-4 sm:p-12 md:p-16 pb-[max(5.5rem,env(safe-area-inset-bottom))] sm:pb-12 pl-[max(1.25rem,env(safe-area-inset-left))] pr-[max(1.25rem,env(safe-area-inset-right))] max-w-7xl mx-auto w-full transition-opacity duration-200"
-              style={{ opacity: opacities[3] }}
+              ref={(el) => { beatCardRefs.current[3] = el; }}
+              className="absolute inset-0 z-30 pointer-events-none flex flex-col justify-end sm:justify-center items-center sm:items-start p-4 sm:p-12 md:p-16 pb-[max(5.5rem,env(safe-area-inset-bottom))] sm:pb-12 pl-[max(1.25rem,env(safe-area-inset-left))] pr-[max(1.25rem,env(safe-area-inset-right))] max-w-7xl mx-auto w-full transition-opacity duration-75"
+              style={{ opacity: 0, visibility: "hidden" }}
             >
-              <div className="max-w-xl space-y-3 sm:space-y-4 p-5 sm:p-0 rounded-2xl bg-black/80 sm:bg-transparent backdrop-blur-xl sm:backdrop-blur-none border border-white/15 sm:border-transparent shadow-2xl sm:shadow-none w-full sm:w-auto">
+              <div className="max-w-xl space-y-3 sm:space-y-4 p-5 sm:p-0 rounded-2xl bg-[#0B0F0D]/90 sm:bg-transparent border border-white/10 sm:border-transparent shadow-2xl sm:shadow-none w-full sm:w-auto">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-emerald-400/30 bg-emerald-400/10 text-emerald-300 text-[11px] sm:text-xs font-sans uppercase tracking-[0.2em]">
                   04 / Material Patentado SmartTrack®
                 </div>
@@ -419,21 +457,20 @@ export function DentalIntroScroller() {
                   Desarrollado exclusivamente para ortodoncia transparente. Ejerce una fuerza constante y suave sobre el diente para un movimiento más predecible. Su transparencia óptica se adapta a la luz natural del esmalte.
                 </p>
 
-                {/* Technical Specs Grid (2x2 on mobile, 4 columns on desktop) */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 pt-1">
-                  <div className="p-3 rounded-xl bg-black/60 border border-white/15 backdrop-blur-md">
+                  <div className="p-3 rounded-xl bg-[#0B0F0D]/80 border border-white/10">
                     <div className="font-editorial text-xl sm:text-2xl text-coral">Constante</div>
                     <div className="text-xs uppercase tracking-wider text-porcelain/70 mt-0.5">Fuerza suave</div>
                   </div>
-                  <div className="p-3 rounded-xl bg-black/60 border border-white/15 backdrop-blur-md">
+                  <div className="p-3 rounded-xl bg-[#0B0F0D]/80 border border-white/10">
                     <div className="font-editorial text-xl sm:text-2xl text-porcelain">Translúcido</div>
                     <div className="text-xs uppercase tracking-wider text-porcelain/70 mt-0.5">Estética discreta</div>
                   </div>
-                  <div className="p-3 rounded-xl bg-black/60 border border-white/15 backdrop-blur-md">
+                  <div className="p-3 rounded-xl bg-[#0B0F0D]/80 border border-white/10">
                     <div className="font-editorial text-xl sm:text-2xl text-porcelain">Adaptable</div>
                     <div className="text-xs uppercase tracking-wider text-porcelain/70 mt-0.5">Ajuste anatómico</div>
                   </div>
-                  <div className="p-3 rounded-xl bg-black/60 border border-white/15 backdrop-blur-md">
+                  <div className="p-3 rounded-xl bg-[#0B0F0D]/80 border border-white/10">
                     <div className="font-editorial text-xl sm:text-2xl text-emerald-300">Biomédico</div>
                     <div className="text-xs uppercase tracking-wider text-porcelain/70 mt-0.5">Confort y seguridad</div>
                   </div>
@@ -441,13 +478,13 @@ export function DentalIntroScroller() {
               </div>
             </div>
 
-            {/* BEAT 5: PROGRESIÓN DEL TRATAMIENTO CON CONTADOR DINÁMICO (0.62 - 0.75 hold) */}
-            {/* Bottom reflow in mobile portrait: progress card at bottom, arches move in upper half */}
+            {/* BEAT 5: PROGRESIÓN CLINCHECK CON CONTADOR DINÁMICO */}
             <div
-              className="absolute inset-0 z-30 pointer-events-none flex flex-col justify-end sm:justify-center items-center sm:items-end p-4 sm:p-12 md:p-16 pb-[max(5.5rem,env(safe-area-inset-bottom))] sm:pb-12 pl-[max(1.25rem,env(safe-area-inset-left))] pr-[max(1.25rem,env(safe-area-inset-right))] max-w-7xl mx-auto w-full transition-opacity duration-200"
-              style={{ opacity: opacities[4] }}
+              ref={(el) => { beatCardRefs.current[4] = el; }}
+              className="absolute inset-0 z-30 pointer-events-none flex flex-col justify-end sm:justify-center items-center sm:items-end p-4 sm:p-12 md:p-16 pb-[max(5.5rem,env(safe-area-inset-bottom))] sm:pb-12 pl-[max(1.25rem,env(safe-area-inset-left))] pr-[max(1.25rem,env(safe-area-inset-right))] max-w-7xl mx-auto w-full transition-opacity duration-75"
+              style={{ opacity: 0, visibility: "hidden" }}
             >
-              <div className="max-w-xl space-y-3 sm:space-y-4 text-left sm:text-right p-5 sm:p-0 rounded-2xl bg-black/80 sm:bg-transparent backdrop-blur-xl sm:backdrop-blur-none border border-white/15 sm:border-transparent shadow-2xl sm:shadow-none w-full sm:w-auto">
+              <div className="max-w-xl space-y-3 sm:space-y-4 text-left sm:text-right p-5 sm:p-0 rounded-2xl bg-[#0B0F0D]/90 sm:bg-transparent border border-white/10 sm:border-transparent shadow-2xl sm:shadow-none w-full sm:w-auto">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-sky-400/30 bg-sky-400/10 text-sky-300 text-[11px] sm:text-xs font-sans uppercase tracking-[0.2em]">
                   05 / Simulación ClinCheck® Pro
                 </div>
@@ -458,30 +495,30 @@ export function DentalIntroScroller() {
                   Cada alineador guía el micromovimiento gradual de tus piezas dentales según la planificación previa realizada por el especialista.
                 </p>
 
-                {/* Animated Interactive Aligner Counter & Progress Bar */}
-                <div className="p-4 sm:p-5 rounded-2xl bg-black/80 sm:bg-black/60 border border-white/15 backdrop-blur-xl text-left shadow-2xl space-y-3">
+                <div className="p-4 sm:p-5 rounded-2xl bg-[#0B0F0D]/90 border border-white/15 text-left shadow-2xl space-y-3">
                   <div className="flex items-baseline justify-between">
                     <span className="text-xs uppercase tracking-wider text-porcelain/70 font-sans">
                       Alineador Activo
                     </span>
                     <span className="font-editorial text-2xl sm:text-4xl text-coral font-medium tracking-tight">
-                      Alineador {currentAligner} <span className="text-xs sm:text-sm font-sans text-porcelain/60">de 22</span>
+                      <span ref={alignerNumRef}>Alineador 1 </span>
+                      <span className="text-xs sm:text-sm font-sans text-porcelain/60">de 22</span>
                     </span>
                   </div>
 
-                  {/* Progress Bar with ticks */}
                   <div className="w-full bg-white/15 h-2.5 rounded-full overflow-hidden p-0.5 relative">
                     <div
-                      className="h-full bg-gradient-to-r from-coral via-amber-400 to-emerald-400 rounded-full transition-all duration-100 ease-out shadow-[0_0_12px_rgba(230,110,80,0.6)]"
-                      style={{ width: `${(currentAligner / 22) * 100}%` }}
+                      ref={alignerBarRef}
+                      className="h-full bg-gradient-to-r from-coral via-amber-400 to-emerald-400 rounded-full transition-all duration-75 ease-out shadow-[0_0_12px_rgba(230,110,80,0.6)]"
+                      style={{ width: "4.5%" }}
                     />
                   </div>
 
                   <div className="grid grid-cols-3 gap-2 pt-2 border-t border-white/10 text-center">
                     <div>
                       <div className="text-[10px] sm:text-xs uppercase tracking-wider text-porcelain/60">Etapa</div>
-                      <div className="text-xs sm:text-sm font-semibold text-porcelain mt-0.5">
-                        Fase {currentAligner} de 22
+                      <div ref={alignerPhaseRef} className="text-xs sm:text-sm font-semibold text-porcelain mt-0.5">
+                        Fase 1 de 22
                       </div>
                     </div>
                     <div>
@@ -501,12 +538,13 @@ export function DentalIntroScroller() {
               </div>
             </div>
 
-            {/* BEAT 6: COMPARATIVA BRACKETS VS INVISALIGN (0.78 - 0.87 hold) */}
+            {/* BEAT 6: COMPARATIVA */}
             <div
-              className="absolute inset-0 z-30 pointer-events-none flex flex-col justify-center items-center p-4 sm:p-12 pt-[max(4.5rem,env(safe-area-inset-top))] pb-[max(5rem,env(safe-area-inset-bottom))] pl-[max(1.25rem,env(safe-area-inset-left))] pr-[max(1.25rem,env(safe-area-inset-right))] max-w-5xl mx-auto w-full transition-opacity duration-200"
-              style={{ opacity: opacities[5] }}
+              ref={(el) => { beatCardRefs.current[5] = el; }}
+              className="absolute inset-0 z-30 pointer-events-none flex flex-col justify-center items-center p-4 sm:p-12 pt-[max(4.5rem,env(safe-area-inset-top))] pb-[max(5rem,env(safe-area-inset-bottom))] pl-[max(1.25rem,env(safe-area-inset-left))] pr-[max(1.25rem,env(safe-area-inset-right))] max-w-5xl mx-auto w-full transition-opacity duration-75"
+              style={{ opacity: 0, visibility: "hidden" }}
             >
-              <div className="w-full space-y-3 sm:space-y-6 max-h-[75dvh] overflow-y-auto sm:overflow-visible pr-1 sm:pr-0">
+              <div className="w-full space-y-3 sm:space-y-6 max-h-[75svh] overflow-y-auto sm:overflow-visible pr-1 sm:pr-0">
                 <div className="text-center space-y-1 sm:space-y-2">
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-purple-400/30 bg-purple-400/10 text-purple-300 text-[11px] sm:text-xs font-sans uppercase tracking-[0.2em]">
                     06 / Análisis Comparativo
@@ -516,10 +554,8 @@ export function DentalIntroScroller() {
                   </h2>
                 </div>
 
-                {/* Two Column Comparative Matrix */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                  {/* Invisalign AURA */}
-                  <div className="p-4 sm:p-6 rounded-2xl bg-black/80 sm:bg-black/60 border border-coral/40 backdrop-blur-xl shadow-xl relative overflow-hidden">
+                  <div className="p-4 sm:p-6 rounded-2xl bg-[#0B0F0D]/90 border border-coral/40 shadow-xl relative overflow-hidden">
                     <div className="absolute top-0 right-0 px-2.5 sm:px-3 py-0.5 sm:py-1 bg-coral text-white text-[9px] sm:text-[10px] uppercase font-bold tracking-widest rounded-bl-lg">
                       Recomendado
                     </div>
@@ -546,8 +582,7 @@ export function DentalIntroScroller() {
                     </ul>
                   </div>
 
-                  {/* Brackets Tradicionales */}
-                  <div className="p-4 sm:p-6 rounded-2xl bg-black/60 sm:bg-black/40 border border-white/10 backdrop-blur-xl opacity-80">
+                  <div className="p-4 sm:p-6 rounded-2xl bg-[#0B0F0D]/75 border border-white/10 opacity-80 shadow-xl">
                     <div className="font-editorial text-lg sm:text-xl text-porcelain/60 mb-2 sm:mb-4">
                       Brackets Metálicos
                     </div>
@@ -574,12 +609,13 @@ export function DentalIntroScroller() {
               </div>
             </div>
 
-            {/* BEAT 7: USO DIARIO Y LIBERTAD — MODELO COMPLETAMENTE QUIETO (0.89 - 0.95 hold) */}
+            {/* BEAT 7: LIBERTAD */}
             <div
-              className="absolute inset-0 z-30 pointer-events-none flex items-center justify-center p-4 sm:p-12 pl-[max(1.25rem,env(safe-area-inset-left))] pr-[max(1.25rem,env(safe-area-inset-right))] max-w-5xl mx-auto w-full transition-opacity duration-200"
-              style={{ opacity: opacities[6] }}
+              ref={(el) => { beatCardRefs.current[6] = el; }}
+              className="absolute inset-0 z-30 pointer-events-none flex items-center justify-center p-4 sm:p-12 pl-[max(1.25rem,env(safe-area-inset-left))] pr-[max(1.25rem,env(safe-area-inset-right))] max-w-5xl mx-auto w-full transition-opacity duration-75"
+              style={{ opacity: 0, visibility: "hidden" }}
             >
-              <div className="text-center space-y-4 sm:space-y-6 max-w-3xl p-5 sm:p-0 rounded-2xl bg-black/70 sm:bg-transparent backdrop-blur-xl sm:backdrop-blur-none border border-white/15 sm:border-transparent">
+              <div className="text-center space-y-4 sm:space-y-6 max-w-3xl p-5 sm:p-0 rounded-2xl bg-[#0B0F0D]/90 sm:bg-transparent border border-white/10 sm:border-transparent shadow-2xl sm:shadow-none">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-coral/30 bg-coral/10 text-coral text-[11px] sm:text-xs font-sans uppercase tracking-[0.2em]">
                   07 / Vida Cotidiana Sin Restricciones
                 </div>
@@ -604,10 +640,11 @@ export function DentalIntroScroller() {
               </div>
             </div>
 
-            {/* BEAT 8: ENTRADA FINAL & CROSS-FADE (0.95 - 1.00) */}
+            {/* BEAT 8: ENTRADA FINAL */}
             <div
-              className="absolute inset-0 z-30 pointer-events-none flex items-center justify-center p-6 sm:p-8 text-center transition-opacity duration-150 pt-[max(4.5rem,env(safe-area-inset-top))] pb-[max(4.5rem,env(safe-area-inset-bottom))]"
-              style={{ opacity: opacities[7] }}
+              ref={(el) => { beatCardRefs.current[7] = el; }}
+              className="absolute inset-0 z-30 pointer-events-none flex items-center justify-center p-6 sm:p-8 text-center transition-opacity duration-75 pt-[max(4.5rem,env(safe-area-inset-top))] pb-[max(4.5rem,env(safe-area-inset-bottom))]"
+              style={{ opacity: 0, visibility: "hidden" }}
             >
               <div className="space-y-3 sm:space-y-4 max-w-lg">
                 <div className="text-xs uppercase tracking-[0.3em] font-sans text-coral font-medium">
@@ -622,12 +659,11 @@ export function DentalIntroScroller() {
               </div>
             </div>
 
-            {/* Seamless Porcelain Cross-Fade (Cross-fade into white home content) */}
+            {/* Seamless Porcelain Cross-Fade */}
             <div
-              className="absolute inset-0 z-40 bg-porcelain pointer-events-none transition-opacity duration-100"
-              style={{
-                opacity: crossFadeOpacity,
-              }}
+              ref={crossFadeRef}
+              className="absolute inset-0 z-40 bg-porcelain pointer-events-none transition-opacity duration-75"
+              style={{ opacity: 0, visibility: "hidden" }}
             />
           </>
         )}

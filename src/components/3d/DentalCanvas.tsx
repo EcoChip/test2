@@ -2,112 +2,114 @@
 
 import React, { Suspense, useEffect, useState } from "react";
 import { Canvas, useThree } from "@react-three/fiber";
-import { PMREMGenerator } from "three";
-import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
+import * as THREE from "three";
 import { DentalArchModel } from "./DentalArchModel";
+import { introScroll } from "@/lib/scrollStore";
 
 interface DentalCanvasProps {
-  progress: number;
   reducedMotion?: boolean;
   onCanvasReady?: () => void;
+  isPastIntro?: boolean;
 }
 
-/**
- * Procedural Studio Environment Map using Three.js built-in RoomEnvironment.
- * Requires ZERO external network downloads (eliminates CDN 403 Forbidden / offline bugs on mobile).
- */
-function StudioEnvironment() {
-  const { gl, scene } = useThree();
+// Precompilation helper that warms up shaders using compileAsync
+function ShaderWarmup({ onReady }: { onReady?: () => void }) {
+  const { gl, scene, camera } = useThree();
 
   useEffect(() => {
-    try {
-      const pmremGenerator = new PMREMGenerator(gl);
-      pmremGenerator.compileEquirectangularShader();
-      const room = new RoomEnvironment();
-      const envMap = pmremGenerator.fromScene(room, 0.04).texture;
-      scene.environment = envMap;
+    let active = true;
 
-      return () => {
-        scene.environment = null;
-        envMap.dispose();
-        pmremGenerator.dispose();
-        room.dispose();
-      };
-    } catch {
-      // Fallback gracefully to direct studio lights on restricted mobile WebGL contexts
+    // Use Three.js compileAsync to compile shaders off the main render hitch
+    if (gl && (gl as any).compileAsync) {
+      (gl as any).compileAsync(scene, camera).then(() => {
+        if (!active) return;
+        // Warm up pipeline with one hidden render frame
+        gl.render(scene, camera);
+        if (onReady) onReady();
+      }).catch(() => {
+        if (onReady) onReady();
+      });
+    } else {
+      gl.render(scene, camera);
+      if (onReady) onReady();
     }
-  }, [gl, scene]);
+
+    return () => {
+      active = false;
+    };
+  }, [gl, scene, camera, onReady]);
 
   return null;
 }
 
 export function DentalCanvas({
-  progress,
   reducedMotion = false,
   onCanvasReady,
+  isPastIntro = false,
 }: DentalCanvasProps) {
-  const [isMobilePortrait, setIsMobilePortrait] = useState(false);
+  const [qualityTier, setQualityTier] = useState<"high" | "medium" | "low">("high");
 
+  // Determine initial quality tier from hardware heuristics
   useEffect(() => {
-    const updateProfile = () => {
-      const isPortrait = window.innerHeight > window.innerWidth;
-      const isNarrow = window.innerWidth < 768;
-      setIsMobilePortrait(isNarrow && isPortrait);
-    };
-    updateProfile();
-    window.addEventListener("resize", updateProfile);
-    window.addEventListener("orientationchange", updateProfile);
-    return () => {
-      window.removeEventListener("resize", updateProfile);
-      window.removeEventListener("orientationchange", updateProfile);
-    };
+    if (typeof window === "undefined") return;
+
+    const cores = navigator.hardwareConcurrency || 4;
+    const memory = (navigator as unknown as { deviceMemory?: number }).deviceMemory || 8;
+    const isTouch = window.matchMedia("(pointer: coarse)").matches;
+    const isNarrow = window.innerWidth < 768;
+
+    let tier: "high" | "medium" | "low" = "high";
+    if (cores <= 2 || memory < 3) {
+      tier = "low";
+    } else if (isTouch || isNarrow || cores < 6 || memory < 6) {
+      tier = "medium";
+    }
+
+    setQualityTier(tier);
+    introScroll.qualityTier = tier;
   }, []);
+
+  // Strict GPU budget: DPR max 1.5, 1.25 on medium, 1.0 on low
+  const dpr: [number, number] | number =
+    qualityTier === "low" ? 1.0 : qualityTier === "medium" ? 1.25 : [1, 1.5];
+  const useAntialias = qualityTier === "high";
+
+  // If scrolled completely past the intro, freeze canvas to free GPU resources
+  if (isPastIntro) {
+    return null;
+  }
 
   return (
     <Canvas
       camera={{ position: [0, 0, 4.2], fov: 38 }}
+      frameloop="demand"
       gl={{
-        antialias: true,
+        antialias: useAntialias,
         alpha: true,
         stencil: false,
         depth: true,
         powerPreference: "high-performance",
       }}
-      // Strict GPU budget: cap to [1, 1.5] on mobile portrait to avoid fillrate bottlenecks on high-density displays
-      dpr={isMobilePortrait ? [1, 1.5] : [1, 2]}
+      dpr={dpr}
       onCreated={() => {
         if (onCanvasReady) {
           onCanvasReady();
         }
       }}
       className="w-full h-full"
+      style={{ pointerEvents: "none" }}
     >
       <Suspense fallback={null}>
-        {/* Built-in procedural HDRI environment for specular reflections */}
-        <StudioEnvironment />
+        {/* Key Lighting setup designed for Fresnel aligner refraction */}
+        <ambientLight intensity={0.8} />
+        <directionalLight position={[4, 6, 5]} intensity={2.0} color="#FFFFFF" />
+        <directionalLight position={[-3, 3, -4]} intensity={2.4} color="#E8F8FA" />
 
-        {/* Ambient Fill Light */}
-        <ambientLight intensity={isMobilePortrait ? 1.1 : 0.9} />
-
-        {/* Front Key Light */}
-        <directionalLight position={[4, 5, 5]} intensity={2.2} color="#FFFFFF" />
-
-        {/* Powerful Backlight passing THROUGH transparent aligner for glowing edges */}
-        <directionalLight position={[0, 0, -4]} intensity={2.8} color="#FFFFFF" />
-
-        {/* Additional specular rim and fill lights for desktop/landscape studio depth */}
-        {!isMobilePortrait && (
-          <>
-            <pointLight position={[0, 0.2, -2.5]} intensity={3.5} distance={9} color="#E8F4F0" />
-            <directionalLight position={[-5, 3, 2]} intensity={2.0} color="#FAF7F2" />
-            <directionalLight position={[0, 6, 2]} intensity={1.8} color="#FFFFFF" />
-            <directionalLight position={[0, -4, 3]} intensity={0.8} color="#B8D0C5" />
-          </>
-        )}
+        <ShaderWarmup onReady={onCanvasReady} />
 
         <DentalArchModel
-          progress={progress}
           reducedMotion={reducedMotion}
+          qualityTier={qualityTier}
           onModelReady={onCanvasReady}
         />
       </Suspense>
